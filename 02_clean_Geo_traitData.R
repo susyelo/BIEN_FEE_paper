@@ -24,6 +24,8 @@ Traits_BIEN_sub<-
   Traits_BIEN %>%
   filter(trait_name%in%fun_traits)
 
+Traits_BIEN_sub<-droplevels(Traits_BIEN_sub)
+
 species_coverage<-
   Traits_BIEN_sub %>%
   group_by(scrubbed_species_binomial) %>% 
@@ -31,10 +33,9 @@ species_coverage<-
 
 
 # Reshaping data frame ----------------------------------------------------
-Traits_BIEN_sub$trait_value<-as.numeric(Traits_BIEN_sub$trait_value)
+#Traits_BIEN_sub$trait_value<-as.numeric(Traits_BIEN_sub$trait_value)
 
 #Renaming trait factors
-Traits_BIEN_sub<-droplevels(Traits_BIEN_sub)
 levels(Traits_BIEN_sub$trait_name)<-gsub(" ","_",levels(Traits_BIEN_sub$trait_name))
 
 # Number of observations per trait values in each species
@@ -47,18 +48,27 @@ Traits_BIEN_sub %>%
 Traits_BIEN_sub %>%
   count(scrubbed_species_binomial,trait_name)
 
+Traits_BIEN_sub<-
+  Traits_BIEN_sub %>% 
+  filter(trait_value!="."&trait_value!="*"&trait_value!="0")
+
+Traits_BIEN_sub<-droplevels(Traits_BIEN_sub)
+
+
+Traits_BIEN_sub$trait_value_NU<-as.numeric(as.character(Traits_BIEN_sub$trait_value))
+## Nas are produced in some fields where the trait value is characters such as "dead" "sacrificed"
 
 # Calculate main trait values per species ---------------------------------
 Mean_Traits_BIEN <-
   Traits_BIEN_sub %>% 
   group_by(scrubbed_species_binomial,trait_name) %>% 
-  summarise(trait_value=mean(trait_value,na.rm=TRUE))
+  summarise(trait_value=mean(trait_value_NU,na.rm=TRUE))
 
 
 # Include growth form -----------------------------------------------------
 GrowForm_tmp<-
   GrowForm %>% 
-  select(FAMILY_STD,SPECIES_STD,GROWTHFORM_STD,GROWTHFORM_DIV)
+  dplyr::select(FAMILY_STD,SPECIES_STD,GROWTHFORM_STD,GROWTHFORM_DIV)
 
 Trait_BIEN_df<-merge(x=Mean_Traits_BIEN,y=GrowForm_tmp,
                      by.x="scrubbed_species_binomial",

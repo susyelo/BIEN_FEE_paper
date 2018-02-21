@@ -21,29 +21,136 @@ xy<-data.frame(x=Occ_BIEN_sub$longitude, y=Occ_BIEN_sub$latitude)
 # Presence/abscence raster of Solanum ---
 BIEN_trait_grids<-lets.presab.points(xy, Occ_BIEN_sub$scrubbed_species_binomial, 
                                      resol=1,count = TRUE,
-                                     show.matrix=TRUE)
+                                     xmn = -167, xmx = -29,ymn = -57, ymx = 83)
 
-BIEN_trait_grids$Richness_Raster[BIEN_trait_grids$Richness_Raster==0]<-NA
+save(BIEN_trait_grids, file="./outputs/BIEN_traits_PresAbs1degree.RData")
 
-
-## Create a new raster
-resol<-1
-r<-raster(xmn = -167, xmx = -29,ymn = -57, ymx = 83,crs = CRS("+proj=laea +lat_0=15 +lon_0=-80 +x_0=0 +y_0=0 +datum=WGS84 +units=m +no_defs +ellps=WGS84 +towgs84=0,0,0"))
-res(r) <- resol
-
-## Find cells with attributes
-cells <- cellFromXY(r, Occ_BIEN_sub[,c("longitude","latitude")])
-
-tmp<-rasterize(xy,r,field=1)
-species_data<-Occ_BIEN_sub[,c("longitude","latitude")]
-
-pa.raster <- presence.absence.raster(mask.raster=r, species.data=species_data, raster.label="tmp")
-plot(pa.raster, main=names(pa.raster))
+BIEN_trait_grids2d<-lets.presab.points(xy, Occ_BIEN_sub$scrubbed_species_binomial, 
+                                     resol=2,count = TRUE,
+                                     xmn = -167, xmx = -29,ymn = -57, ymx = 83)
 
 
-## Ploting the richness of Solanum
-e <- extent(-170, 180, -60, 75)
-ras<-spplot(crop(log(Solanum_grids$Richness_Raster),e),
-            sp.layout=spl_tmp,col.regions=colors, colorkey=list(labels=list(cex=2)))
+BIEN_trait_grids2d$Richness_Raster[BIEN_trait_grids2d$Richness_Raster==0]<-NA
+
+plot(log(BIEN_trait_grids$Richness_Raster))
 
 
+# Trait maps --------------------------------------------------------------
+# range size
+range_size<-lets.rangesize(BIEN_trait_grids, units="squaremeter")
+
+Range_size_map<- lets.maplizer(BIEN_trait_grids,
+                               range_size,
+                               BIEN_trait_grids$Species_name,
+                               ras = TRUE)
+
+# Height
+trait_df_wide<-
+  trait_df  %>% 
+  spread(trait_name,trait_value) %>% 
+  filter(scrubbed_species_binomial%in%BIEN_trait_grids$Species_name)
+
+Height<-  
+  trait_df_wide %>% 
+  group_by(scrubbed_species_binomial) %>% 
+  summarise(height=mean(whole_plant_height,na.rm=TRUE))
+
+
+Height_map<- lets.maplizer(BIEN_trait_grids,
+                           log(Height$height),
+                           BIEN_trait_grids$Species_name,
+                           func = mean,
+                           ras = TRUE)
+
+plot(Height_map$Raster)
+
+
+# Specific leaf area
+## really struggling to get this trait work (no enough data to calculate it)
+
+SLA<-  
+  trait_df_wide %>% 
+  group_by(scrubbed_species_binomial) %>% 
+  summarise(leaf_area=mean(leaf_area,na.rm=TRUE),
+            leaf_dry_mass_per_leaf_fresh_mass=mean(leaf_dry_mass_per_leaf_fresh_mass,na.rm=TRUE))
+
+SLA$SLA<-SLA$leaf_area/SLA$leaf_dry_mass_per_leaf_fresh_mass
+
+SLA_map<- lets.maplizer(BIEN_trait_grids,
+                        SLA$SLA,
+                        BIEN_trait_grids$Species_name,
+                        func = mean,
+                        ras = TRUE)
+
+plot(SLA_map$Raster)
+
+
+# Seed mass
+Seed_mass<-  
+  trait_df_wide %>% 
+  group_by(scrubbed_species_binomial) %>% 
+  summarise(seed_mass=mean(seed_mass,na.rm=TRUE))
+
+Seed_mass_map<- lets.maplizer(BIEN_trait_grids,
+                              log(Seed_mass$seed_mass),
+                              BIEN_trait_grids$Species_name,
+                              func = mean,
+                              ras = TRUE)
+plot(Seed_mass_map$Raster,col=terrain.colors(100))
+
+spplot(Seed_mass_map$Raster)
+
+
+# Leaf N
+Leaf_N<-  
+  trait_df_wide %>% 
+  group_by(scrubbed_species_binomial) %>% 
+  summarise(Leaf_N=mean(leaf_nitrogen_content_per_leaf_dry_mass,na.rm=TRUE))
+
+Leaf_N_map<- lets.maplizer(BIEN_trait_grids,
+                           Leaf_N$Leaf_N,
+                           BIEN_trait_grids$Species_name,
+                           func = mean,
+                           ras = TRUE)
+
+plot(Leaf_N_map$Raster,col=terrain.colors(100))
+spplot(Leaf_N_map$Raster)
+
+# Leaf P
+Leaf_P<-  
+  trait_df_wide %>% 
+  group_by(scrubbed_species_binomial) %>% 
+  summarise(Leaf_P=mean(leaf_phosphorus_content_per_leaf_dry_mass,na.rm=TRUE))
+
+Leaf_P_map<- lets.maplizer(BIEN_trait_grids,
+                           Leaf_P$Leaf_P,
+                           BIEN_trait_grids$Species_name,
+                           func = mean,
+                           ras = TRUE)
+
+plot(Leaf_P_map$Raster,col=terrain.colors(100))
+spplot(Leaf_P_map$Raster)
+
+# Wood density
+Wood_dens<-  
+  trait_df_wide %>% 
+  group_by(scrubbed_species_binomial) %>% 
+  summarise(Wood_dens=mean(whole_plant_woodiness,na.rm=TRUE))
+
+Wood_dens_map<- lets.maplizer(BIEN_trait_grids,
+                           Wood_dens$Wood_dens,
+                           BIEN_trait_grids$Species_name,
+                           func = mean,
+                           ras = TRUE)
+
+Wood_dens_map_sd<- lets.maplizer(BIEN_trait_grids,
+                              Wood_dens$Wood_dens,
+                              BIEN_trait_grids$Species_name,
+                              func = sd,
+                              ras = TRUE)
+
+plot(Wood_dens_map$Raster,col=terrain.colors(100))
+
+spplot(Wood_dens_map_sd$Raster)
+
+spplot(Wood_dens_map$Raster)
