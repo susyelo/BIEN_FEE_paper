@@ -16,7 +16,7 @@ Traits_BIEN<-read.csv("./data/2018_02_07_BIEN_trait_data.csv")
 
 
 ## Include only the six main trait levels
-fun_traits<-c("leaf area","leaf dry mass per leaf fresh mass",
+fun_traits<-c("whole plant leaf area per whole plant leaf dry mass",
               "seed mass","whole plant height","stem wood density",
               "leaf nitrogen content per leaf dry mass","leaf phosphorus content per leaf dry mass")
 
@@ -37,6 +37,7 @@ species_coverage<-
 
 #Renaming trait factors
 levels(Traits_BIEN_sub$trait_name)<-gsub(" ","_",levels(Traits_BIEN_sub$trait_name))
+
 
 # Number of observations per trait values in each species
 # For example, Abarema jupunba has 16 values of stem_wood_density
@@ -82,14 +83,6 @@ Trait_BIEN_df$GROWTHFORM_GEN[which(is.na(Trait_BIEN_df$GROWTHFORM_STD))]<-NA
 
 Trait_BIEN_df %>% 
   group_by(GROWTHFORM_GEN) %>% 
-  summarise(sp_number=n_distinct(scrubbed_species_binomial))
-
-Trait_BIEN_df$has_GeoRef<-ifelse(Trait_BIEN_df$scrubbed_species_binomial%in%unique(Occ_BIEN$scrubbed_species_binomial),
-                                 "yes","no")
-
-## Number of species per Growthform with and without records 
-Trait_BIEN_df %>% 
-  group_by(GROWTHFORM_GEN,has_GeoRef) %>% 
   summarise(sp_number=n_distinct(scrubbed_species_binomial))
 
 
