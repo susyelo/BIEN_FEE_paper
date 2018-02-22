@@ -1,6 +1,9 @@
 # LIBS --------------------------------------------------------------------
 library(BIEN)
 library(tidyverse)
+library(maptools)
+library(rworldmap)
+library(cleangeo)
 
 
 # Download data -----------------------------------------------------------
