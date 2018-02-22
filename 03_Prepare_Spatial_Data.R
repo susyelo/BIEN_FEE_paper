@@ -1,13 +1,24 @@
-# libraries ---------------------------------------------------------------
+# Libraries ---------------------------------------------------------------
 library(letsR)
+library(tidyverse)
+library(gridExtra)
 
-
-# data --------------------------------------------------------------------
-#trait data
+# Data --------------------------------------------------------------------
+# trait data
 trait_df<-read.csv("./outputs/BIEN_trait_GrowthForm.csv")
 
 # Occurrence data
 occ_df<-readRDS("./data/2018_02_08_BIEN_traitOccurData.RData")
+
+
+# Functions ---------------------------------------------------------------
+source("./functions/BIEN2.0_RangeMaps_functions.R")
+
+
+
+
+# Delete names spaces
+Trait_BIEN_df$scrubbed_species_binomial<-gsub(" ", "_",Trait_BIEN_df$scrubbed_species_binomial)
 
 # Filter Occurrence data --------------------------------------------------
 Occ_BIEN_sub<-
@@ -32,7 +43,7 @@ BIEN_trait_grids2d<-lets.presab.points(xy, Occ_BIEN_sub$scrubbed_species_binomia
 
 BIEN_trait_grids2d$Richness_Raster[BIEN_trait_grids2d$Richness_Raster==0]<-NA
 
-plot(log(BIEN_trait_grids$Richness_Raster))
+plot(log10(BIEN_trait_grids$Richness_Raster))
 
 
 # Trait maps --------------------------------------------------------------
@@ -71,10 +82,7 @@ plot(Height_map$Raster)
 SLA<-  
   trait_df_wide %>% 
   group_by(scrubbed_species_binomial) %>% 
-  summarise(leaf_area=mean(leaf_area,na.rm=TRUE),
-            leaf_dry_mass_per_leaf_fresh_mass=mean(leaf_dry_mass_per_leaf_fresh_mass,na.rm=TRUE))
-
-SLA$SLA<-SLA$leaf_area/SLA$leaf_dry_mass_per_leaf_fresh_mass
+  summarise(SLA=mean(whole_plant_leaf_area_per_whole_plant_leaf_dry_mass,na.rm=TRUE))
 
 SLA_map<- lets.maplizer(BIEN_trait_grids,
                         SLA$SLA,
@@ -154,3 +162,66 @@ plot(Wood_dens_map$Raster,col=terrain.colors(100))
 spplot(Wood_dens_map_sd$Raster)
 
 spplot(Wood_dens_map$Raster)
+
+
+
+# Using Range maps --------------------------------------------------------
+d<-read.csv("./data/BIEN_2_Ranges/presence100km.csv")
+names(d) = c("Species","Y","X")
+r<-raster("./data/BIEN_2_Ranges/richness100km.tif")
+
+### Total richness for species with ranges maps in BIEN 2.0
+plot(r)
+
+r[r==0]<-NA
+Total_richness_plot<-spplot(r, main="Total richness")
+
+
+
+## Richness for species with trait values
+# matrix and richness raster
+TraitSpecies = unique(Trait_BIEN_df$scrubbed_species_binomial)
+
+## It include NAs for the species that do not have range maps available
+spMatrix = splistToMatrix(d,TraitSpecies)
+
+# Plot one of the species' ranges
+spplot(setValues(r,spMatrix[,6]))
+
+## Richness using only the species with trait values
+spRichness = splistToRichness(d,TraitSpecies)
+spRichness[spRichness==0]<-NA
+
+Trait_richness_plot<-spplot(spRichness, main="Species with traits")
+
+
+## Richness for woody vs herbaceous species
+
+## Woody species
+woody_sp<-Trait_BIEN_df %>% 
+  filter(GROWTHFORM_GEN=="woody") %>% 
+  dplyr::select(scrubbed_species_binomial) %>% 
+  unique
+
+Woody_Richness = splistToRichness(d,woody_sp$scrubbed_species_binomial)
+Woody_Richness[Woody_Richness==0]<-NA
+Woody_plot<-spplot(Woody_Richness, main="Woody")
+
+
+## Herbaceous species
+herbaceous_sp<-Trait_BIEN_df %>% 
+  filter(GROWTHFORM_GEN=="herbaceous") %>% 
+  dplyr::select(scrubbed_species_binomial) %>% 
+  unique
+
+herbaceus_Richness = splistToRichness(d,herbaceous_sp$scrubbed_species_binomial)
+herbaceus_Richness[herbaceus_Richness==0]<-NA
+herbaceus_plot<-spplot(herbaceus_Richness, main="Herbaceus")
+
+pdf("./figs/Rangemaps_richness.pdf")
+grid.arrange(Total_richness_plot,Trait_richness_plot,
+             Woody_plot,herbaceus_plot,
+             ncol=2,
+             nrow=2)
+dev.off()
+
