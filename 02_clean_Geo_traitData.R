@@ -4,7 +4,7 @@ library(tidyverse)
 # data --------------------------------------------------------------------
 # Taken from Engemann, K., Sandel, B., Boyle, B., Enquist, B. J., Jørgensen, P. M., Kattge, J., McGill, B. J., Morueta-Holme, N., Peet, R. K., Spencer, N. J., Violle, C., Wiser, S. K. and Svenning, J.-C. (2016), 
 # A plant growth form dataset for the New World. Ecology, 97: 3243. doi:10.1002/ecy.1569
-GrowForm<-read.table("./data/GrowthForm_Final.txt",header=TRUE)
+GrowForm<-read.table("./data/base/GrowthForm_Final.txt",header=TRUE)
 
 # traits data
 # maximum plant height (m)
@@ -12,7 +12,7 @@ GrowForm<-read.table("./data/GrowthForm_Final.txt",header=TRUE)
 # seed mass (mg)
 # Leaf phosphorus and leaf nitrogen concentration per mass (Leaf N and Leaf P) (mg/g)
 # wood density (mg/cm3).
-Traits_BIEN<-read.csv("./data/2018_02_07_BIEN_trait_data.csv")
+Traits_BIEN<-read.csv("./data/base/2018_02_07_BIEN_trait_data.csv")
 
 
 ## Include only the six main trait levels
@@ -87,4 +87,4 @@ Trait_BIEN_df %>%
 
 
 # Write clean datasets ----------------------------------------------------
-write.csv(Trait_BIEN_df,"./outputs/BIEN_trait_GrowthForm.csv")
+write.csv(Trait_BIEN_df,"./data/processed/BIEN_trait_GrowthForm.csv")
