@@ -84,7 +84,7 @@ dev.off()
 
 
 # Writing data ------------------------------------------------------------
-writeRaster(spRichness,"./outputs/")
-
+writeRaster(spRichness,"./data/processed/TraitRichness_raster.tif")
+save(spMatrix, file="./data/processed/PresAbs_matrix_TraitRange.RData")
 
 
