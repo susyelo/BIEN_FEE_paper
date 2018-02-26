@@ -11,7 +11,7 @@ source("./functions/BIEN2.0_RangeMaps_functions.R")
 
 # Data --------------------------------------------------------------------
 # Trait data
-trait_df<-read.csv("./outputs/BIEN_trait_GrowthForm.csv")
+trait_df<-read.csv("./data/processed/BIEN_trait_GrowthForm.csv")
 
 # Range maps
 d<-read.csv("./data/base/BIEN_2_Ranges/presence100km.csv")
