@@ -14,11 +14,11 @@ source("./functions/BIEN2.0_RangeMaps_functions.R")
 trait_df<-read.csv("./outputs/BIEN_trait_GrowthForm.csv")
 
 # Range maps
-d<-read.csv("./data/BIEN_2_Ranges/presence100km.csv")
+d<-read.csv("./data/base/BIEN_2_Ranges/presence100km.csv")
 names(d) = c("Species","Y","X")
 
 # Richness raster
-r<-raster("./data/BIEN_2_Ranges/richness100km.tif")
+r<-raster("./data/base/BIEN_2_Ranges/richness100km.tif")
 
 
 # Total richness ----------------------------------------------------------
@@ -83,6 +83,8 @@ grid.arrange(Total_richness_plot,Trait_richness_plot,
 dev.off()
 
 
-# Number of species with trait values per biome ---------------------------
+# Writing data ------------------------------------------------------------
+writeRaster(spRichness,"./outputs/")
+
 
 

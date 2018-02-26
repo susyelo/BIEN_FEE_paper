@@ -8,13 +8,7 @@ library(gridExtra)
 trait_df<-read.csv("./outputs/BIEN_trait_GrowthForm.csv")
 
 # Occurrence data
-occ_df<-readRDS("./data/2018_02_08_BIEN_traitOccurData.RData")
-
-
-# Functions ---------------------------------------------------------------
-source("./functions/BIEN2.0_RangeMaps_functions.R")
-
-
+occ_df<-readRDS("./data/base/2018_02_08_BIEN_traitOccurData.RData")
 
 
 # Delete names spaces
