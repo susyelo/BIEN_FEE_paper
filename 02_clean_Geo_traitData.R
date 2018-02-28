@@ -15,6 +15,7 @@ GrowForm<-read.table("./data/base/GrowthForm_Final.txt",header=TRUE)
 Traits_BIEN<-read.csv("./data/base/2018_02_07_BIEN_trait_data.csv")
 
 
+# Filter traits -----------------------------------------------------------
 ## Include only the six main trait levels
 fun_traits<-c("whole plant leaf area per whole plant leaf dry mass",
               "seed mass","whole plant height","stem wood density",
@@ -26,15 +27,20 @@ Traits_BIEN_sub<-
 
 Traits_BIEN_sub<-droplevels(Traits_BIEN_sub)
 
+## Filter non numerical trait values such as "." or "*" and even "0"
+Traits_BIEN_sub<-
+  Traits_BIEN_sub %>% 
+  filter(trait_value!="."&trait_value!="*"&trait_value!="0")
+
+Traits_BIEN_sub<-droplevels(Traits_BIEN_sub)
+
+## Exploring the number of traits with values per species
 species_coverage<-
   Traits_BIEN_sub %>%
   group_by(scrubbed_species_binomial) %>% 
   summarise(N_traits=n_distinct(trait_name))
 
-
 # Reshaping data frame ----------------------------------------------------
-#Traits_BIEN_sub$trait_value<-as.numeric(Traits_BIEN_sub$trait_value)
-
 #Renaming trait factors
 levels(Traits_BIEN_sub$trait_name)<-gsub(" ","_",levels(Traits_BIEN_sub$trait_name))
 
@@ -49,21 +55,33 @@ Traits_BIEN_sub %>%
 Traits_BIEN_sub %>%
   count(scrubbed_species_binomial,trait_name)
 
-Traits_BIEN_sub<-
-  Traits_BIEN_sub %>% 
-  filter(trait_value!="."&trait_value!="*"&trait_value!="0")
-
-Traits_BIEN_sub<-droplevels(Traits_BIEN_sub)
-
 
 Traits_BIEN_sub$trait_value_NU<-as.numeric(as.character(Traits_BIEN_sub$trait_value))
-## Nas are produced in some fields where the trait value is characters such as "dead" "sacrificed"
+## Nas are produced in some fields where the trait value is characters
+# such as "dead" "sacrificed"
 
 # Calculate main trait values per species ---------------------------------
+# Only one trait value per species
 Mean_Traits_BIEN <-
   Traits_BIEN_sub %>% 
   group_by(scrubbed_species_binomial,trait_name) %>% 
   summarise(trait_value=mean(trait_value_NU,na.rm=TRUE))
+
+
+var_names<-as.character(unique(Mean_Traits_BIEN$trait_name))
+
+
+# Create trait values table, I use sum function to get rid of the NAs
+# using mean also work since there is only one trait value per trait name
+trait_df_wide<-
+  Mean_Traits_BIEN  %>% 
+  spread(trait_name,trait_value) %>% 
+  group_by(scrubbed_species_binomial) %>%
+  summarise_at(var_names,sum,na.rm=TRUE)
+
+# Changing zeros to NAS
+trait_df_wide<-as.data.frame(trait_df_wide)
+trait_df_wide[trait_df_wide == 0]<-NA
 
 
 # Include growth form -----------------------------------------------------
@@ -71,7 +89,7 @@ GrowForm_tmp<-
   GrowForm %>% 
   dplyr::select(FAMILY_STD,SPECIES_STD,GROWTHFORM_STD,GROWTHFORM_DIV)
 
-Trait_BIEN_df<-merge(x=Mean_Traits_BIEN,y=GrowForm_tmp,
+Trait_BIEN_df<-merge(x=trait_df_wide,y=GrowForm_tmp,
                      by.x="scrubbed_species_binomial",
                      by.y="SPECIES_STD",
                      all.x=TRUE)
@@ -84,7 +102,6 @@ Trait_BIEN_df$GROWTHFORM_GEN[which(is.na(Trait_BIEN_df$GROWTHFORM_STD))]<-NA
 Trait_BIEN_df %>% 
   group_by(GROWTHFORM_GEN) %>% 
   summarise(sp_number=n_distinct(scrubbed_species_binomial))
-
 
 # Write clean datasets ----------------------------------------------------
 write.csv(Trait_BIEN_df,"./data/processed/BIEN_trait_GrowthForm.csv")
