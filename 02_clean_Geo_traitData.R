@@ -1,6 +1,7 @@
 # libraries ---------------------------------------------------------------
 library(tidyverse)
 
+
 # data --------------------------------------------------------------------
 # Taken from Engemann, K., Sandel, B., Boyle, B., Enquist, B. J., Jørgensen, P. M., Kattge, J., McGill, B. J., Morueta-Holme, N., Peet, R. K., Spencer, N. J., Violle, C., Wiser, S. K. and Svenning, J.-C. (2016), 
 # A plant growth form dataset for the New World. Ecology, 97: 3243. doi:10.1002/ecy.1569
@@ -27,7 +28,8 @@ Traits_BIEN_sub<-
 
 Traits_BIEN_sub<-droplevels(Traits_BIEN_sub)
 
-## Filter non numerical trait values such as "." or "*" and even "0"
+# Filter non numerical trait values -----------------------------------------
+## Trait values such as "." or "*" and even "0"
 Traits_BIEN_sub<-
   Traits_BIEN_sub %>% 
   filter(trait_value!="."&trait_value!="*"&trait_value!="0")
@@ -42,7 +44,13 @@ species_coverage<-
 
 # Reshaping data frame ----------------------------------------------------
 #Renaming trait factors
-levels(Traits_BIEN_sub$trait_name)<-gsub(" ","_",levels(Traits_BIEN_sub$trait_name))
+Traits_BIEN_sub$trait_name<-as.character(Traits_BIEN_sub$trait_name)
+Traits_BIEN_sub$trait_name[which(Traits_BIEN_sub$trait_name=="stem wood density")]<-"Wood_density"
+Traits_BIEN_sub$trait_name[which(Traits_BIEN_sub$trait_name=="leaf nitrogen content per leaf dry mass")]<-"Leaf_N"
+Traits_BIEN_sub$trait_name[which(Traits_BIEN_sub$trait_name=="seed mass")]<-"Seed_mass"
+Traits_BIEN_sub$trait_name[which(Traits_BIEN_sub$trait_name=="whole plant height")]<-"Height"
+Traits_BIEN_sub$trait_name[which(Traits_BIEN_sub$trait_name=="leaf phosphorus content per leaf dry mass")]<-"SLA"
+Traits_BIEN_sub$trait_name<-as.factor(Traits_BIEN_sub$trait_name)
 
 
 # Number of observations per trait values in each species
@@ -67,9 +75,7 @@ Mean_Traits_BIEN <-
   group_by(scrubbed_species_binomial,trait_name) %>% 
   summarise(trait_value=mean(trait_value_NU,na.rm=TRUE))
 
-
 var_names<-as.character(unique(Mean_Traits_BIEN$trait_name))
-
 
 # Create trait values table, I use sum function to get rid of the NAs
 # using mean also work since there is only one trait value per trait name
