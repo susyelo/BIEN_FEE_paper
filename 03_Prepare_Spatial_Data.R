@@ -5,20 +5,23 @@ library(gridExtra)
 
 # Data --------------------------------------------------------------------
 # trait data
-trait_df<-read.csv("./outputs/BIEN_trait_GrowthForm.csv")
+trait_df<-read.csv("./data/processed/BIEN_trait_GrowthForm.csv")
 
 # Occurrence data
 occ_df<-readRDS("./data/base/2018_02_08_BIEN_traitOccurData.RData")
 
+# Range maps richness raster (to use as a reference for the projections)
+range_maps_rich<-raster("./data/processed/TraitRichness_raster.tif")
 
-# Delete names spaces
-Trait_BIEN_df$scrubbed_species_binomial<-gsub(" ", "_",Trait_BIEN_df$scrubbed_species_binomial)
+
 
 # Filter Occurrence data --------------------------------------------------
 Occ_BIEN_sub<-
   occ_df %>% 
   filter(scrubbed_species_binomial %in% unique(trait_df$scrubbed_species_binomial))
 
+# Delete names spaces
+trait_df$scrubbed_species_binomial<-gsub(" ", "_",trait_df$scrubbed_species_binomial)
 
 # Create species richness map
 xy<-data.frame(x=Occ_BIEN_sub$longitude, y=Occ_BIEN_sub$latitude)
@@ -30,14 +33,26 @@ BIEN_trait_grids<-lets.presab.points(xy, Occ_BIEN_sub$scrubbed_species_binomial,
 
 save(BIEN_trait_grids, file="./outputs/BIEN_traits_PresAbs1degree.RData")
 
-BIEN_trait_grids2d<-lets.presab.points(xy, Occ_BIEN_sub$scrubbed_species_binomial, 
-                                     resol=2,count = TRUE,
-                                     xmn = -167, xmx = -29,ymn = -57, ymx = 83)
+# Plot richness map -------------------------------------------------------
+
+## Changing projection and resolution using the richness of species with range maps raster
+occ_richnes<-BIEN_trait_grids$Richness_Raster
+occ_richnes[occ_richnes==0]<-NA
+
+newproj<-proj4string(range_maps_rich)
+occ_richnes<-projectRaster(occ_richnes,crs=newproj,res=1e+05)
+
+ref_ext<-extent(range_maps_rich)
+  
+range_richness<-spplot(range_maps_rich, main="Range maps")
+occ_richness<-spplot(crop(occ_richnes,ref_ext), main="Occurrence")
 
 
-BIEN_trait_grids2d$Richness_Raster[BIEN_trait_grids2d$Richness_Raster==0]<-NA
-
-plot(log10(BIEN_trait_grids$Richness_Raster))
+pdf("./figs/Occurrence_vs_Rmaps_richness.pdf")
+grid.arrange(range_richness,occ_richness,
+             ncol=2,
+             nrow=1)
+dev.off()
 
 
 # Trait maps --------------------------------------------------------------
