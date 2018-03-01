@@ -20,9 +20,6 @@ Occ_BIEN_sub<-
   occ_df %>% 
   filter(scrubbed_species_binomial %in% unique(trait_df$scrubbed_species_binomial))
 
-# Delete names spaces
-trait_df$scrubbed_species_binomial<-gsub(" ", "_",trait_df$scrubbed_species_binomial)
-
 # Create species richness map
 xy<-data.frame(x=Occ_BIEN_sub$longitude, y=Occ_BIEN_sub$latitude)
 
@@ -65,36 +62,17 @@ Range_size_map<- lets.maplizer(BIEN_trait_grids,
                                ras = TRUE)
 
 # Height
-trait_df_wide<-
-  trait_df  %>% 
-  spread(trait_name,trait_value) %>% 
-  filter(scrubbed_species_binomial%in%BIEN_trait_grids$Species_name)
-
-Height<-  
-  trait_df_wide %>% 
-  group_by(scrubbed_species_binomial) %>% 
-  summarise(height=mean(whole_plant_height,na.rm=TRUE))
-
-
 Height_map<- lets.maplizer(BIEN_trait_grids,
-                           log(Height$height),
+                           trait_df$whole_plant_height,
                            BIEN_trait_grids$Species_name,
                            func = mean,
                            ras = TRUE)
 
-plot(Height_map$Raster)
+plot(log(Height_map$Raster))
 
-
-# Specific leaf area
-## really struggling to get this trait work (no enough data to calculate it)
-
-SLA<-  
-  trait_df_wide %>% 
-  group_by(scrubbed_species_binomial) %>% 
-  summarise(SLA=mean(whole_plant_leaf_area_per_whole_plant_leaf_dry_mass,na.rm=TRUE))
 
 SLA_map<- lets.maplizer(BIEN_trait_grids,
-                        SLA$SLA,
+                        trait_df$whole_plant_leaf_area_per_whole_plant_leaf_dry_mass,
                         BIEN_trait_grids$Species_name,
                         func = mean,
                         ras = TRUE)
@@ -104,7 +82,7 @@ plot(SLA_map$Raster)
 
 # Seed mass
 Seed_mass<-  
-  trait_df_wide %>% 
+  trait_df %>% 
   group_by(scrubbed_species_binomial) %>% 
   summarise(seed_mass=mean(seed_mass,na.rm=TRUE))
 
