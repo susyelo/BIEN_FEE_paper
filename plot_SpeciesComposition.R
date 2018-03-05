@@ -3,6 +3,9 @@ library(raster)
 library(tidyverse)
 library(foreach)
 library(fuzzySim)
+library(circlize)
+library(RColorBrewer)
+library(wesanderson)
 
 # functions ---------------------------------------------------------------
 source("./functions/BIEN2.0_RangeMaps_functions.R")
@@ -51,6 +54,8 @@ for (i in 1:length(biome_poly)){
   
 }
 
+save(spPresence, file="./outputs/spPresence_biomes_all.RData")
+
 ## Presence/absence matrix of biomes
 tmp<-spPresence %>% 
   select(Species, biomes) %>%
@@ -90,19 +95,8 @@ rownames(spSimilarity)<-names(biome_richness)
 spSimilarity/diag(spSimilarity)
 # Chordplot of similarities -----------------------------------------------
 
-library(circlize)
-library(RColorBrewer)
-library(wesanderson)
-
 col=c(wes_palette("Darjeeling",6,type="continuous"),
       wes_palette("Cavalcanti",6,type="continuous"))
-
-
-adj = matrix(sample(c(1, 0), 26**2, replace = TRUE, prob = c(1, 9)),
-             nrow = 26, dimnames = list(LETTERS, LETTERS))
-adj = ifelse(adj == 1, runif(26**2), 0)
-chordDiagram(adj, transparency = 0.4, grid.col = "midnightblue",
-             col = colorRamp2(seq(0, 1, 0.2), brewer.pal(6, "Blues")))
 
 spSimilarity_1<-spSimilarity
 diag(spSimilarity_1)<-0
@@ -121,6 +115,109 @@ pdf("./figs/Total_similarity_biomes.pdf")
 chordDiagram(spSimilarity_1, grid.col =col,symmetric = TRUE,link.sort = TRUE,
              column.col = col)
 dev.off()
+
+
+
+
+# Plot with species with traits -------------------------------------------
+trait_BIEN<-read.csv("./data/processed/BIEN_trait_GrowthForm.csv")
+trait_BIEN$scrubbed_species_binomial<-gsub(" ","_",trait_BIEN$scrubbed_species_binomial)
+
+spPresence_sub<-spPresence[spPresence$Species%in%trait_BIEN$scrubbed_species_binomial,]
+spPresence_sub<-na.omit(spPresence_sub)
+
+
+# Species list
+biome_richness_sub<-foreach(i=1:length(biome_poly))  %do% {
+  
+  cells_tmp<-unlist(cellFromPolygon(r_Total_Rich,biome_poly[[i]]))
+  sp_list_tmp<-unique(spPresence_sub$Species[spPresence_sub$cells%in%cells_tmp])
+  
+}
+names(biome_richness_sub)<-names(biome_poly)
+
+
+## Create similarity matrix
+## Create a loop to calculate the similarity (number of species shared among biomes)
+spSimilarity_sub<-foreach(i=1:length(biome_richness_sub), .combine='cbind') %:%
+  foreach(j=1:length(biome_richness_sub), .combine='c') %do% {
+    length(intersect(biome_richness_sub[[i]],biome_richness_sub[[j]]))
+  }
+
+colnames(spSimilarity_sub)<-names(biome_richness_sub)
+rownames(spSimilarity_sub)<-names(biome_richness_sub)
+
+
+col=c(wes_palette("Darjeeling",6,type="continuous"),
+      wes_palette("Cavalcanti",6,type="continuous"))
+
+spSimilarity_sub1<-spSimilarity_sub
+diag(spSimilarity_sub1)<-0
+
+colnames(spSimilarity_sub1)<-c("moist","tropical.mixed",
+                            "savanna","grasslands",
+                            "dry","xeric","MED",
+                            "TEMP","CONI","PRA","TA","TU")
+
+rownames(spSimilarity_sub1)<-colnames(spSimilarity_sub1)
+
+
+pdf("./figs/OnlyTrait_similarity_biomes.pdf")
+chordDiagram(spSimilarity_sub1, grid.col =col,symmetric = TRUE,link.sort = TRUE,
+             column.col = col)
+dev.off()
+
+
+
+# Plot species with growth form -------------------------------------------
+Growth_form<-read.table("data/base/GrowthForm_Final.txt", header = TRUE)
+Growth_form$SPECIES_STD<-gsub(" ","_",Growth_form$SPECIES_STD)
+
+spPresence_sub<-spPresence[spPresence$Species%in%Growth_form$SPECIES_STD,]
+spPresence_sub<-na.omit(spPresence_sub)
+
+
+# Species list
+biome_richness_sub<-foreach(i=1:length(biome_poly))  %do% {
+  
+  cells_tmp<-unlist(cellFromPolygon(r_Total_Rich,biome_poly[[i]]))
+  sp_list_tmp<-unique(spPresence_sub$Species[spPresence_sub$cells%in%cells_tmp])
+  
+}
+names(biome_richness_sub)<-names(biome_poly)
+
+
+## Create similarity matrix
+## Create a loop to calculate the similarity (number of species shared among biomes)
+spSimilarity_sub<-foreach(i=1:length(biome_richness_sub), .combine='cbind') %:%
+  foreach(j=1:length(biome_richness_sub), .combine='c') %do% {
+    length(intersect(biome_richness_sub[[i]],biome_richness_sub[[j]]))
+  }
+
+colnames(spSimilarity_sub)<-names(biome_richness_sub)
+rownames(spSimilarity_sub)<-names(biome_richness_sub)
+
+
+col=c(wes_palette("Darjeeling",6,type="continuous"),
+      wes_palette("Cavalcanti",6,type="continuous"))
+
+spSimilarity_sub1<-spSimilarity_sub
+diag(spSimilarity_sub1)<-0
+
+colnames(spSimilarity_sub1)<-c("moist","tropical.mixed",
+                               "savanna","grasslands",
+                               "dry","xeric","MED",
+                               "TEMP","CONI","PRA","TA","TU")
+
+rownames(spSimilarity_sub1)<-colnames(spSimilarity_sub1)
+
+
+pdf("./figs/OnlyGrowth_similarity_biomes.pdf")
+chordDiagram(spSimilarity_sub1, grid.col =col,symmetric = TRUE,link.sort = TRUE,
+             column.col = col)
+dev.off()
+
+
 
 
 
