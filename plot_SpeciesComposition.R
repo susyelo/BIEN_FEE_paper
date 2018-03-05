@@ -2,6 +2,7 @@
 library(raster)
 library(tidyverse)
 library(foreach)
+library(fuzzySim)
 
 # functions ---------------------------------------------------------------
 source("./functions/BIEN2.0_RangeMaps_functions.R")
@@ -40,6 +41,27 @@ names(biome_poly)<-c("moist","tropical.mixed",
                      "savanna","grasslands",
                      "dry","xeric","mediterranean",
                      "temperate.mixed","coniferous","prairies","taiga","tundra")
+
+
+## Include biome classification in each cell 
+spPresence$biomes<-NA
+for (i in 1:length(biome_poly)){
+  cells_tmp<-unlist(cellFromPolygon(r_Total_Rich,biome_poly[[i]]))
+  spPresence$biomes[spPresence$cells%in%cells_tmp]<-names(biome_poly)[i]
+  
+}
+
+## Presence/absence matrix of biomes
+tmp<-spPresence %>% 
+  select(Species, biomes) %>%
+  splist2presabs(sites.col = "biomes", sp.col = "Species")
+
+save(tmp, file="./outputs/Biome_ALL_Sp_matrix.RData")
+
+## square matrix of pair-wise similarities among biomes
+# biome.sim.mat<-simMat(tmp[,-1], method = "Jaccard",upper=FALSE)
+
+
 
 biome_richness<-foreach(i=1:length(biome_poly))  %do% {
   
