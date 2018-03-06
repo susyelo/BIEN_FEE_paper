@@ -27,31 +27,23 @@ r_Total_Rich[r_Total_Rich==0]<-NA
 #spplot(r_Total_Rich)
 
 # 3. Shapefiles
-load("./data/base/Danilo_data/biomes_shp4susy.RData")
+biome_shp<-shapefile("./data/processed/Olson_processed/Biomes_olson_projected.shp")
 
 ## Include cell number using the row and col numbers as reference
 spPresence$cells<-cellFromRowCol(r_Total_Rich,spPresence$Y, spPresence$X)
 
 
 # Extract species for each biome --------------------------------------------
-# Ignoring montane TODO: do it with better polygons
-biome_poly<-list(moist,tropical.mixed,
-                 savanna,grasslands,
-                 dry,xeric,mediterranean,
-                 temperate.mixed,coniferous,prairies,taiga,tundra)
-  
-names(biome_poly)<-c("moist","tropical.mixed",
-                     "savanna","grasslands",
-                     "dry","xeric","mediterranean",
-                     "temperate.mixed","coniferous","prairies","taiga","tundra")
 
+biome_name<-biome_shp$biomes
 
 ## Include biome classification in each cell 
 spPresence$biomes<-NA
-for (i in 1:length(biome_poly)){
-  cells_tmp<-unlist(cellFromPolygon(r_Total_Rich,biome_poly[[i]]))
-  spPresence$biomes[spPresence$cells%in%cells_tmp]<-names(biome_poly)[i]
-  
+for (i in 1:length(biome_name)){
+  print(paste("Extracting",biome_name[i]))
+  shp_tmp<-biome_shp[which(biome_shp$biomes==biome_name[i]),]
+  cells_tmp<-unlist(cellFromPolygon(r_Total_Rich,shp_tmp))
+  spPresence$biomes[spPresence$cells%in%cells_tmp]<-biome_name[i]
 }
 
 save(spPresence, file="./outputs/spPresence_biomes_all.RData")
@@ -66,15 +58,15 @@ save(tmp, file="./outputs/Biome_ALL_Sp_matrix.RData")
 ## square matrix of pair-wise similarities among biomes
 # biome.sim.mat<-simMat(tmp[,-1], method = "Jaccard",upper=FALSE)
 
-
-
-biome_richness<-foreach(i=1:length(biome_poly))  %do% {
+biome_richness<-foreach(i=1:length(biome_name))  %do% {
   
-  cells_tmp<-unlist(cellFromPolygon(r_Total_Rich,biome_poly[[i]]))
+  print(paste("Extracting",biome_name[i]))
+  shp_tmp<-biome_shp[which(biome_shp$biomes==biome_name[i]),]
+  cells_tmp<-unlist(cellFromPolygon(r_Total_Rich,shp_tmp))
   sp_list_tmp<-unique(spPresence$Species[spPresence$cells%in%cells_tmp])
   
 }
-names(biome_richness)<-names(biome_poly)
+names(biome_richness)<-biome_name
 
 
 ## Create similarity matrix
@@ -90,33 +82,35 @@ rownames(spSimilarity)<-names(biome_richness)
 
 ## Double check that the numbers are correct
 #diag(spSimilarity)==unlist(lapply(biome_richness, n_distinct))
-
-
-spSimilarity/diag(spSimilarity)
+#spSimilarity/diag(spSimilarity)
 # Chordplot of similarities -----------------------------------------------
 
-col=c(wes_palette("Darjeeling",6,type="continuous"),
-      wes_palette("Cavalcanti",6,type="continuous"))
-
+## order by richness 
+indx<-rev(order(diag(spSimilarity)))
 spSimilarity_1<-spSimilarity
+spSimilarity_1<-spSimilarity_1[indx,indx]
+
+
+col=c(wes_palette("Darjeeling",6,type="continuous"),
+      wes_palette("Cavalcanti",5,type="continuous"))
+
 diag(spSimilarity_1)<-0
 chordDiagram(spSimilarity_1, transparency = 0.25,
              grid.col =col,link.sort = TRUE,symmetric = TRUE)
 
 
-colnames(spSimilarity_1)<-c("moist","tropical.mixed",
-                            "savanna","grasslands",
-                            "dry","xeric","MED",
-                            "TEMP","CONI","PRA","TA","TU")
+colnames(spSimilarity_1)<-c("Moist","Dry",
+                            "Xeric","Savannas",
+                            "Trop_Grass","CONI","Temp_Mixed",
+                            "Temp_Grass","MED","TA","TU")
+
 
 rownames(spSimilarity_1)<-colnames(spSimilarity_1)
 
 pdf("./figs/Total_similarity_biomes.pdf")
-chordDiagram(spSimilarity_1, grid.col =col,symmetric = TRUE,link.sort = TRUE,
+chordDiagram(spSimilarity_1, grid.col =col,symmetric = TRUE,
              column.col = col)
 dev.off()
-
-
 
 
 # Plot with species with traits -------------------------------------------
