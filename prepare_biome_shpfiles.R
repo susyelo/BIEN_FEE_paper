@@ -89,5 +89,5 @@ dev.off()
 
 
 # Write shapefile ---------------------------------------------------------
-writeOGR(obj=biomes_shp_proj, dsn="tempdir", layer="Biomes_olson_projected", driver="ESRI Shapefile")
+writeOGR(obj=biomes_shp_proj, dsn="./data/processed/Olson_processed", layer="Biomes_olson_projected", driver="ESRI Shapefile")
 
