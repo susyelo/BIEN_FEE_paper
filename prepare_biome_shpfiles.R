@@ -87,3 +87,7 @@ qtm(biomes_shp_proj, fill="biomes", fill.style="fixed",
     fill.palette=bio_colors)
 dev.off()
 
+
+# Write shapefile ---------------------------------------------------------
+writeOGR(obj=biomes_shp_proj, dsn="tempdir", layer="Biomes_olson_projected", driver="ESRI Shapefile")
+
