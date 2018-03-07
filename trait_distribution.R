@@ -91,3 +91,9 @@ DF_trait_biome %>%
   ggplot(aes(x=log(Wood_density), y=Biome, height=..density..)) +
   geom_density_ridges(scale=2,na.rm = TRUE)
 dev.off()  
+
+
+
+# Write data frame traits biomes ------------------------------------------
+write.csv(DF_trait_biome,"./outputs/Df_traits_biomes_Sp_withRanges.csv")
+
