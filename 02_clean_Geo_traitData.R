@@ -20,7 +20,8 @@ Traits_BIEN<-read.csv("./data/base/2018_02_07_BIEN_trait_data.csv")
 ## Include only the six main trait levels
 fun_traits<-c("whole plant leaf area per whole plant leaf dry mass",
               "seed mass","whole plant height","stem wood density",
-              "leaf nitrogen content per leaf dry mass","leaf phosphorus content per leaf dry mass")
+              "leaf nitrogen content per leaf dry mass",
+              "leaf phosphorus content per leaf dry mass")
 
 Traits_BIEN_sub<-
   Traits_BIEN %>%
@@ -49,7 +50,8 @@ Traits_BIEN_sub$trait_name[which(Traits_BIEN_sub$trait_name=="stem wood density"
 Traits_BIEN_sub$trait_name[which(Traits_BIEN_sub$trait_name=="leaf nitrogen content per leaf dry mass")]<-"Leaf_N"
 Traits_BIEN_sub$trait_name[which(Traits_BIEN_sub$trait_name=="seed mass")]<-"Seed_mass"
 Traits_BIEN_sub$trait_name[which(Traits_BIEN_sub$trait_name=="whole plant height")]<-"Height"
-Traits_BIEN_sub$trait_name[which(Traits_BIEN_sub$trait_name=="leaf phosphorus content per leaf dry mass")]<-"SLA"
+Traits_BIEN_sub$trait_name[which(Traits_BIEN_sub$trait_name=="leaf phosphorus content per leaf dry mass")]<-"Leaf_P"
+Traits_BIEN_sub$trait_name[which(Traits_BIEN_sub$trait_name=="whole plant leaf area per whole plant leaf dry mass")]<-"SLA"
 Traits_BIEN_sub$trait_name<-as.factor(Traits_BIEN_sub$trait_name)
 
 
@@ -73,7 +75,7 @@ Traits_BIEN_sub$trait_value_NU<-as.numeric(as.character(Traits_BIEN_sub$trait_va
 Mean_Traits_BIEN <-
   Traits_BIEN_sub %>% 
   group_by(scrubbed_species_binomial,trait_name) %>% 
-  summarise(trait_value=mean(trait_value_NU,na.rm=TRUE))
+  dplyr::summarise(trait_value=mean(trait_value_NU,na.rm=TRUE))
 
 var_names<-as.character(unique(Mean_Traits_BIEN$trait_name))
 
