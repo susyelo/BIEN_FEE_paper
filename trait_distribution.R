@@ -67,7 +67,6 @@ DF_trait_biome %>%
   geom_density_ridges(scale=2,na.rm = TRUE)
 dev.off()  
 
-
 pdf("./figs/Trait_distribution/Dist_Seed_mass.pdf")
 DF_trait_biome %>% 
   ggplot(aes(x=log(seed.mass), y=Biome, height=..density..)) +
@@ -79,6 +78,13 @@ DF_trait_biome %>%
   ggplot(aes(x=Leaf_N, y=Biome, height=..density..)) +
   geom_density_ridges(scale=2,na.rm = TRUE)
 dev.off()  
+
+pdf("./figs/Trait_distribution/Dist_Leaf_P.pdf")
+DF_trait_biome %>% 
+  ggplot(aes(x=Leaf_P, y=Biome, height=..density..)) +
+  geom_density_ridges(scale=2,na.rm = TRUE)
+dev.off()  
+
 
 pdf("./figs/Trait_distribution/Dist_Wood_density.pdf")
 DF_trait_biome %>% 
