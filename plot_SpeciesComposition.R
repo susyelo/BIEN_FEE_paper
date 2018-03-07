@@ -49,9 +49,9 @@ for (i in 1:length(biome_name)){
 save(spPresence, file="./outputs/spPresence_biomes_all.RData")
 
 ## Presence/absence matrix of biomes
-tmp<-spPresence %>% 
-  select(Species, biomes) %>%
-  splist2presabs(sites.col = "biomes", sp.col = "Species")
+#tmp<-spPresence %>% 
+#  select(Species, biomes) %>%
+#  splist2presabs(sites.col = "biomes", sp.col = "Species")
 
 save(tmp, file="./outputs/Biome_ALL_Sp_matrix.RData")
 
@@ -67,6 +67,21 @@ biome_richness<-foreach(i=1:length(biome_name))  %do% {
   
 }
 names(biome_richness)<-biome_name
+
+## Calculate the number of endemic species
+
+spEndemics<-foreach(i=1:length(biome_richness), .combine='c') %do%{
+  
+  compare<-which(names(biome_richness)!=names(biome_richness)[i])
+  N_endemics<-setdiff(biome_richness[[i]],unlist(biome_richness[compare]))
+  n_distinct(N_endemics)
+}
+names(spEndemics)<-names(biome_richness) 
+
+# Total number of species per biome
+total_n<-unlist(lapply(biome_richness,n_distinct))
+
+prop_endemics<-round(spEndemics/total_n,2)*100
 
 
 ## Create similarity matrix
@@ -95,15 +110,13 @@ col=c(wes_palette("Darjeeling",6,type="continuous"),
       wes_palette("Cavalcanti",5,type="continuous"))
 
 diag(spSimilarity_1)<-0
-chordDiagram(spSimilarity_1, transparency = 0.25,
-             grid.col =col,link.sort = TRUE,symmetric = TRUE)
-
-
 colnames(spSimilarity_1)<-c("Moist","Dry",
                             "Xeric","Savannas",
-                            "Trop_Grass","CONI","Temp_Mixed",
-                            "Temp_Grass","MED","TA","TU")
+                            "Trop Grass","Coniferous","Temp Mixed",
+                            "Temp Grass","Mediterranean","Taiga","Tundra")
 
+
+colnames(spSimilarity_1)<-paste(colnames(spSimilarity_1),", ", prop_endemics[indx],"%", sep="")
 
 rownames(spSimilarity_1)<-colnames(spSimilarity_1)
 
@@ -112,6 +125,22 @@ chordDiagram(spSimilarity_1, grid.col =col,symmetric = TRUE,
              column.col = col)
 dev.off()
 
+
+
+# now, the image with rotated labels
+
+pdf("./figs/Total_similarity_biomes_withEndemics.pdf")
+par(mar=c(0, 0, 0, 0))
+chordDiagram(spSimilarity_1, annotationTrack = "grid", preAllocateTracks = 1, grid.col =col,symmetric = TRUE,
+             column.col = col)
+circos.trackPlotRegion(track.index = 1, panel.fun = function(x, y) {
+  xlim = get.cell.meta.data("xlim")
+  ylim = get.cell.meta.data("ylim")
+  sector.name = get.cell.meta.data("sector.index")
+  circos.text(mean(xlim), ylim[1] + .2, sector.name, facing = "clockwise", niceFacing = TRUE, adj = c(0, 0.5), cex=0.7)
+  circos.axis(h = "top", labels.cex = 0.5, major.tick.percentage = 0.2, sector.index = sector.name, track.index = 2)
+}, bg.border = NA)
+dev.off()
 
 
 
