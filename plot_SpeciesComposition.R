@@ -52,8 +52,7 @@ save(spPresence, file="./outputs/spPresence_biomes_all.RData")
 #tmp<-spPresence %>% 
 #  select(Species, biomes) %>%
 #  splist2presabs(sites.col = "biomes", sp.col = "Species")
-
-save(tmp, file="./outputs/Biome_ALL_Sp_matrix.RData")
+#save(tmp, file="./outputs/Biome_ALL_Sp_matrix.RData")
 
 ## square matrix of pair-wise similarities among biomes
 # biome.sim.mat<-simMat(tmp[,-1], method = "Jaccard",upper=FALSE)
@@ -67,6 +66,8 @@ biome_richness<-foreach(i=1:length(biome_name))  %do% {
   
 }
 names(biome_richness)<-biome_name
+
+save(biome_richness, file="./outputs/Biome_list_species.RData")
 
 ## Calculate the number of endemic species
 
