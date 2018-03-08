@@ -52,44 +52,79 @@ DF_trait_biome %>%
   group_by(Biome) %>% 
   dplyr::summarise(Median=mean(SLA,na.rm=T),
                    max=max(SLA,na.rm=T),
-                   min=min(SLA,na.rm=T), sd=sd(SLA,na.rm=T))
+                   min=min(SLA,na.rm=T), sd=sd(SLA,na.rm=T)) 
 
 
-pdf("./figs/Trait_distribution/Dist_SLA.pdf")
-DF_trait_biome %>% 
-  ggplot(aes(x=SLA, y=Biome, height=..density..)) +
-  geom_density_ridges(scale=2,na.rm = TRUE)
-dev.off()  
+cols=wes_palette("Chevalier")[c(1,4,3)]
 
-pdf("./figs/Trait_distribution/Dist_Height.pdf")
+
+pdf("./figs/Trait_distribution/Dist_Height.pdf",width=10)
 DF_trait_biome %>% 
   ggplot(aes(x=log(Height), y=Biome, height=..density..)) +
-  geom_density_ridges(scale=2,na.rm = TRUE)
+  geom_density_ridges(aes(x = log(Height), fill = paste(Biome, GROWTHFORM_GEN)),
+                      scale=2,na.rm = TRUE,alpha = .8, color = "white")+
+  scale_fill_cyclical(values = cols,
+                      labels = c("Herbaceous", "Woody", "No growth form info"),
+                      name = "Option", guide = "legend")+
+  theme_ridges(grid = FALSE)
 dev.off()  
 
-pdf("./figs/Trait_distribution/Dist_Seed_mass.pdf")
+pdf("./figs/Trait_distribution/Dist_SLA.pdf",width=12)
 DF_trait_biome %>% 
-  ggplot(aes(x=log(seed.mass), y=Biome, height=..density..)) +
-  geom_density_ridges(scale=2,na.rm = TRUE)
+  ggplot(aes(x=SLA, y=Biome, height=..density..)) +
+  geom_density_ridges(aes(x = SLA, fill = paste(Biome, GROWTHFORM_GEN)),
+                      scale=2,na.rm = TRUE,alpha = .8, color = "white",from=0, to=100)+
+  scale_fill_cyclical(values = cols,
+                      labels = c("Herbaceous", "Woody", "No growth form info"),
+                      name = "Option", guide = "legend")+
+  theme_ridges(grid = FALSE)
 dev.off()  
 
-pdf("./figs/Trait_distribution/Dist_Leaf_N.pdf")
+pdf("./figs/Trait_distribution/Dist_Seed_mass.pdf",width=12)
+DF_trait_biome %>% 
+  ggplot(aes(x=log(Seed_mass), y=Biome, height=..density..)) +
+  geom_density_ridges(aes(x = log(Seed_mass), fill = paste(Biome, GROWTHFORM_GEN)),
+                      scale=2,na.rm = TRUE,alpha = .8, color = "white")+
+  scale_fill_cyclical(values = cols,
+                      labels = c("Herbaceous", "Woody", "No growth form info"),
+                      name = "Option", guide = "legend")+
+  theme_ridges(grid = FALSE)
+dev.off()  
+
+pdf("./figs/Trait_distribution/Dist_Leaf_N.pdf",width=12)
 DF_trait_biome %>% 
   ggplot(aes(x=Leaf_N, y=Biome, height=..density..)) +
-  geom_density_ridges(scale=2,na.rm = TRUE)
+  geom_density_ridges(aes(x = Leaf_N, fill = paste(Biome, GROWTHFORM_GEN)),
+                      scale=2,na.rm = TRUE,alpha = .8, color = "white")+
+  scale_fill_cyclical(values = cols,
+                      labels = c("Herbaceous", "Woody", "No growth form info"),
+                      name = "Option", guide = "legend")+
+  theme_ridges(grid = FALSE)
 dev.off()  
 
-pdf("./figs/Trait_distribution/Dist_Leaf_P.pdf")
+
+
+pdf("./figs/Trait_distribution/Dist_Leaf_P.pdf",width=12)
 DF_trait_biome %>% 
   ggplot(aes(x=Leaf_P, y=Biome, height=..density..)) +
-  geom_density_ridges(scale=2,na.rm = TRUE)
+  geom_density_ridges(aes(x = Leaf_P, fill = paste(Biome, GROWTHFORM_GEN)),
+                      scale=2,na.rm = TRUE,alpha = .8, color = "white")+
+  scale_fill_cyclical(values = cols,
+                      labels = c("Herbaceous", "Woody", "No growth form info"),
+                      name = "Option", guide = "legend")+
+  theme_ridges(grid = FALSE)
 dev.off()  
 
 
-pdf("./figs/Trait_distribution/Dist_Wood_density.pdf")
+pdf("./figs/Trait_distribution/Dist_Wood_density.pdf",width=12)
 DF_trait_biome %>% 
   ggplot(aes(x=log(Wood_density), y=Biome, height=..density..)) +
-  geom_density_ridges(scale=2,na.rm = TRUE)
+  geom_density_ridges(aes(x = log(Wood_density), fill = paste(Biome, GROWTHFORM_GEN)),
+                      scale=2,na.rm = TRUE,alpha = .8, color = "white")+
+  scale_fill_cyclical(values = cols,
+                      labels = c("Herbaceous", "Woody", "No growth form info"),
+                      name = "Option", guide = "legend")+
+  theme_ridges(grid = FALSE)
 dev.off()  
 
 
