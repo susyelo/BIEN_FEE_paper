@@ -55,17 +55,21 @@ DF_trait_biome %>%
                    min=min(SLA,na.rm=T), sd=sd(SLA,na.rm=T)) 
 
 
-cols=wes_palette("Chevalier")[c(1,4,3)]
+cols=wes_palette("Chevalier")[c(1,3,4)]
 
+DF_trait_biome$GROWTHFORM_GEN<-as.character(DF_trait_biome$GROWTHFORM_GEN)
+indx<-which(is.na(DF_trait_biome$GROWTHFORM_GEN))
+DF_trait_biome$GROWTHFORM_GEN[indx]<-"No_info"
 
+# The order of the Growth form is alphabetical (herb, no_info, woody)
 pdf("./figs/Trait_distribution/Dist_Height.pdf",width=10)
 DF_trait_biome %>% 
   ggplot(aes(x=log(Height), y=Biome, height=..density..)) +
   geom_density_ridges(aes(x = log(Height), fill = paste(Biome, GROWTHFORM_GEN)),
                       scale=2,na.rm = TRUE,alpha = .8, color = "white")+
   scale_fill_cyclical(values = cols,
-                      labels = c("Herbaceous", "Woody", "No growth form info"),
-                      name = "Option", guide = "legend")+
+                      labels = c("Herbaceous", "No information", "Woody"),
+                      name = "Growth form", guide = "legend")+
   theme_ridges(grid = FALSE)
 dev.off()  
 
@@ -75,8 +79,8 @@ DF_trait_biome %>%
   geom_density_ridges(aes(x = SLA, fill = paste(Biome, GROWTHFORM_GEN)),
                       scale=2,na.rm = TRUE,alpha = .8, color = "white",from=0, to=100)+
   scale_fill_cyclical(values = cols,
-                      labels = c("Herbaceous", "Woody", "No growth form info"),
-                      name = "Option", guide = "legend")+
+                      labels = c("Herbaceous", "No information", "Woody"),
+                      name = "Growth form", guide = "legend")+
   theme_ridges(grid = FALSE)
 dev.off()  
 
@@ -86,8 +90,8 @@ DF_trait_biome %>%
   geom_density_ridges(aes(x = log(Seed_mass), fill = paste(Biome, GROWTHFORM_GEN)),
                       scale=2,na.rm = TRUE,alpha = .8, color = "white")+
   scale_fill_cyclical(values = cols,
-                      labels = c("Herbaceous", "Woody", "No growth form info"),
-                      name = "Option", guide = "legend")+
+                      labels = c("Herbaceous", "No information", "Woody"),
+                      name = "Growth form", guide = "legend")+
   theme_ridges(grid = FALSE)
 dev.off()  
 
@@ -97,8 +101,8 @@ DF_trait_biome %>%
   geom_density_ridges(aes(x = Leaf_N, fill = paste(Biome, GROWTHFORM_GEN)),
                       scale=2,na.rm = TRUE,alpha = .8, color = "white")+
   scale_fill_cyclical(values = cols,
-                      labels = c("Herbaceous", "Woody", "No growth form info"),
-                      name = "Option", guide = "legend")+
+                      labels = c("Herbaceous", "No information", "Woody"),
+                      name = "Growth form", guide = "legend")+
   theme_ridges(grid = FALSE)
 dev.off()  
 
@@ -110,8 +114,8 @@ DF_trait_biome %>%
   geom_density_ridges(aes(x = Leaf_P, fill = paste(Biome, GROWTHFORM_GEN)),
                       scale=2,na.rm = TRUE,alpha = .8, color = "white")+
   scale_fill_cyclical(values = cols,
-                      labels = c("Herbaceous", "Woody", "No growth form info"),
-                      name = "Option", guide = "legend")+
+                      labels = c("Herbaceous", "No information", "Woody"),
+                      name = "Growth form", guide = "legend")+
   theme_ridges(grid = FALSE)
 dev.off()  
 
@@ -122,8 +126,8 @@ DF_trait_biome %>%
   geom_density_ridges(aes(x = log(Wood_density), fill = paste(Biome, GROWTHFORM_GEN)),
                       scale=2,na.rm = TRUE,alpha = .8, color = "white")+
   scale_fill_cyclical(values = cols,
-                      labels = c("Herbaceous", "Woody", "No growth form info"),
-                      name = "Option", guide = "legend")+
+                      labels = c("Herbaceous", "No information", "Woody"),
+                      name = "Growth form", guide = "legend")+
   theme_ridges(grid = FALSE)
 dev.off()  
 
