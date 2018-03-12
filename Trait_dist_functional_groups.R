@@ -102,7 +102,7 @@ row.names(Biomes_Abun_sp)<-biomes_names
 Biome_relAbun<-make_relative(Biomes_Abun_sp)
 
 # Calculating distinctiveness using relative abundance (number of grids) of species ----
-Biomes_di = distinctiveness_mod(Biome_relAbun, Dist_matrix)
+Biomes_di_abundance = distinctiveness_mod(Biome_relAbun, Dist_matrix)
 
 Biomes_di_clean<-
   Biomes_di%>%
