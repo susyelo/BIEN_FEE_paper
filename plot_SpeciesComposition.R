@@ -130,6 +130,25 @@ dev.off()
 
 # now, the image with rotated labels
 
+## order by richness 
+indx<-rev(order(diag(spSimilarity)))
+spSimilarity_1<-spSimilarity
+spSimilarity_1<-spSimilarity_1[indx,indx]
+
+
+col=c(wes_palette("Darjeeling",6,type="continuous"),
+      wes_palette("Cavalcanti",5,type="continuous"))
+
+diag(spSimilarity_1)<-0
+colnames(spSimilarity_1)<-c("Moist","Dry",
+                            "Xeric","Savannas",
+                            "Trop Grass","Coniferous","Temp Mixed",
+                            "Temp Grass","Mediterranean","Taiga","Tundra")
+
+
+colnames(spSimilarity_1)<-paste(colnames(spSimilarity_1),", ", prop_endemics[indx],"%", sep="")
+
+rownames(spSimilarity_1)<-colnames(spSimilarity_1)
 pdf("./figs/Total_similarity_biomes_withEndemics.pdf")
 par(mar=c(0, 0, 0, 0))
 chordDiagram(spSimilarity_1, annotationTrack = "grid", preAllocateTracks = 1, grid.col =col,symmetric = TRUE,
@@ -143,6 +162,36 @@ circos.trackPlotRegion(track.index = 1, panel.fun = function(x, y) {
 }, bg.border = NA)
 dev.off()
 
+## Using the colours and order from the biomes shapefile maps
+col_biomes<-read.csv("./outputs/colours_biomes.csv")
+
+## order by richness 
+indx<-match(col_biomes$biome, colnames(spSimilarity))
+spSimilarity_2<-spSimilarity
+spSimilarity_2<-spSimilarity_2[indx,indx]
+
+diag(spSimilarity_2)<-0
+colnames(spSimilarity_2)<-c("MOI","SAV","TrG",
+                            "DRY","XER","MED",
+                            "TeG","CO","TeM",
+                            "TAI","TUN")
 
 
+colnames(spSimilarity_2)<-paste(colnames(spSimilarity_2),", ", prop_endemics[indx],"%", sep="")
+
+rownames(spSimilarity_2)<-colnames(spSimilarity_2)
+
+pdf("./figs/Total_similarity_biomes_withEndemics_2.pdf")
+par(mar=c(0, 0, 0, 0))
+chordDiagram(spSimilarity_2, annotationTrack = "grid", preAllocateTracks = 1,
+             grid.col = as.character(col_biomes$color),symmetric = TRUE,
+             column.col = col_biomes$color)
+circos.trackPlotRegion(track.index = 1, panel.fun = function(x, y) {
+  xlim = get.cell.meta.data("xlim")
+  ylim = get.cell.meta.data("ylim")
+  sector.name = get.cell.meta.data("sector.index")
+  circos.text(mean(xlim), ylim[1] + .2, sector.name, facing = "clockwise", niceFacing = TRUE, adj = c(0, 0.5), cex=0.7)
+  circos.axis(h = "top", labels.cex = 0.5, major.tick.percentage = 0.2, sector.index = sector.name, track.index = 2)
+}, bg.border = NA)
+dev.off()
 
