@@ -5,7 +5,8 @@ library(sp)
 library(foreach)
 library(raster)
 library(viridis)
-
+library(ggridges)
+library(wesanderson)
 
 
 # Functions ---------------------------------------------------------------
@@ -101,8 +102,15 @@ row.names(Biomes_Abun_sp)<-biomes_names
 # Calculating relative abundance
 Biome_relAbun<-make_relative(Biomes_Abun_sp)
 
+# Calculating distinctiveness ----
+Biomes_pabs_sp<-Biomes_Abun_sp
+Biomes_pabs_sp[which(Biomes_pabs_sp>0)]<-1
+
+Biomes_di = distinctiveness_mod(Biomes_pabs_sp, Dist_matrix)
+
+
 # Calculating distinctiveness using relative abundance (number of grids) of species ----
-Biomes_di_abundance = distinctiveness_mod(Biome_relAbun, Dist_matrix)
+#Biomes_di_abundance = distinctiveness_mod(Biome_relAbun, Dist_matrix)
 
 Biomes_di_clean<-
   Biomes_di%>%
@@ -113,26 +121,16 @@ Biomes_di_clean<-
   gather(key="Biome",value="Di",-species) %>% 
   filter(!is.na(Di))
 
-## Get rid of some outliers
-unique(Biomes_di_clean$species[which(Biomes_di_clean$Di>10)])
-
-Biomes_di_clean<-
-  Biomes_di_clean %>% 
-  filter(Di<10)
-  
-
 
 ### Exploring data
 Biomes_di_clean %>% 
   group_by(Biome) %>% 
-  summarise(mean_di=mean(Di),
+  dplyr::summarise(mean_di=mean(Di),
             sd_di=sd(Di))
 
 summary(Biomes_di_clean$Di[which(Biomes_di_clean$Biome=="Moist_Forest")])
-Biomes_di_clean$Discale<-rescaleRas(Biomes_di_clean$Di)
 
 ### Merging growth form data with distinctiveness data
-
 df1<-
   DF_trait_biome %>% 
   dplyr::select(scrubbed_species_binomial,GROWTHFORM_GEN,GROWTHFORM_STD) %>% 
@@ -144,24 +142,64 @@ Biome_di_growthForm<-merge(df1,Biomes_di_clean,
 
 biome_name<-unique(Biome_di_growthForm$Biome)
 
+### Distribution of Distinctiveness per biome ----
+## Overall
+cols=wes_palette("Chevalier")[c(1,3,4)]
+
+Biome_di_growthForm %>% 
+  ggplot(aes(x=Di, y=Biome, height=..density..)) +
+  geom_density_ridges()
+
+
+Biome_di_growthForm %>% 
+  group_by(Biome) %>% 
+  dplyr::summarise(mean_di=mean(Di),
+                   sd_di=sd(Di), 
+                   max=max(Di))
+
+## There are around 94 species with extreme values
+Biome_di_growthForm %>% 
+  filter(Di>5) %>%
+  group_by(Biome) %>% 
+  dplyr::summarise(N_sp=n_distinct(scrubbed_species_binomial))
+
+Biome_di_growthForm<-
+  Biome_di_growthForm %>% 
+  filter(Di<5)
+
+Biome_di_growthForm %>% 
+  ggplot(aes(x=Di, y=Biome, height=..density..)) +
+  geom_density_ridges()
+
+## By Growthform
+Biome_di_growthForm %>% 
+  ggplot(aes(x=Di, y=Biome, height=..density..)) +
+  geom_density_ridges(aes(x = Di, fill = paste(Biome, GROWTHFORM_GEN)),
+                      scale=2,na.rm = TRUE,alpha = .8, color = "white")+
+  scale_fill_cyclical(values = cols,
+                      labels = c("Herbaceous", "No information", "Woody"),
+                      name = "Growth form", guide = "legend")+
+  theme_ridges(grid = FALSE)
+
+
+
 dist<-
 foreach(i=1:length(biome_name), .combine = rbind) %do%{
   a<-Biome_di_growthForm %>% 
     filter(Biome==biome_name[i]) %>% 
-    filter(Discale>=quantile(Discale, probs =0.6)) %>% 
+    filter(Di>=quantile(Di, 0.7)) %>% 
     group_by(GROWTHFORM_STD) %>% 
-    summarise(N_sp=length(GROWTHFORM_STD)) %>% 
+    dplyr::summarise(N_sp=length(GROWTHFORM_STD)) %>% 
     mutate(Dist="Dist",Biome=biome_name[i],prop=round(N_sp/sum(N_sp)*100,2))
 }
 
 redunt<-
-  
   foreach(i=1:length(biome_name), .combine = rbind) %do%{
     a<-Biome_di_growthForm %>% 
       filter(Biome==biome_name[i]) %>% 
-      filter(Discale<quantile(Discale, probs =0.2)) %>% 
+      filter(Di<quantile(Di, 0.2)) %>% 
       group_by(GROWTHFORM_STD) %>% 
-      summarise(N_sp=length(GROWTHFORM_STD)) %>% 
+      dplyr::summarise(N_sp=length(GROWTHFORM_STD)) %>% 
       mutate(Dist="Redun",Biome=biome_name[i],prop=round(N_sp/sum(N_sp)*100,2))
   }
 
@@ -176,6 +214,17 @@ redunt<-
 
 
 total_dist<-rbind(dist,redunt)
+
+## Total growth form proportion
+
+pdf("./figs/Growth_total.pdf", width = 12)
+ggplot() + geom_bar(aes(y = prop, x = Biome, fill = GROWTHFORM_STD), data = total_dist,
+                    stat="identity")+
+  coord_flip() +
+  ggtitle("Total")
+dev.off()
+
+
 
 pdf("./figs/Growth_distinctive.pdf", width = 12)
 ggplot() + geom_bar(aes(y = prop, x = Biome, fill = GROWTHFORM_STD), data = dist,
