@@ -4,13 +4,19 @@ library(rgdal)
 library(rgeos)
 library(tidyverse)
 library(tmap)
+library(wesanderson)
 
 # data --------------------------------------------------------------------
 # 1. Biome polygons
 download.file("http://maps.tnc.org/files/shp/terr-ecoregions-TNC.zip",
               destfile = "./data/base/wwf_olson/olson_biomes.zip")
 
-unzip("./data/base/wwf_olson/olson_biomes.zip", exdir = "./data/base/wwf_olson/")
+### The unzip function does not work properly in windows so I need to set a temporary working directory
+setwd("./data/base/wwf_olson/")
+unzip("olson_biomes.zip")
+setwd("../../../")
+
+
 biomes_shp <- shapefile("./data/base/wwf_olson/tnc_terr_ecoregions.shp")
 
 
@@ -42,11 +48,6 @@ biome_NW$biomes[which(biome_NW$WWF_MHTNAM=="Mediterranean Forests, Woodlands and
 biome_NW$biomes[which(biome_NW$WWF_MHTNAM=="Temperate Conifer Forests")]<-"Coniferous_Forests"
 biome_NW$biomes[which(biome_NW$WWF_MHTNAM=="Boreal Forests/Taiga")]<-"Taiga"
 
-
-# Filter some biomes ------------------------------------------------------
-exclude_biomes<-c("Inland Water","Rock and Ice","Mangroves")
-biome_NW_sub<-biome_NW[which(biome_NW$biomes%in%exclude_biomes==FALSE),]
-
 # Extract the data you want (the larger geography)
 biome_poly <- gUnaryUnion(biome_NW, id = biome_NW@data$biomes)
 
@@ -58,23 +59,40 @@ row.names(lu)<-lu$biomes
  
 biome_poly <- SpatialPolygonsDataFrame(biome_poly, lu)
 
-
+# Filter some biomes ------------------------------------------------------
+exclude_biomes<-c("Inland Water","Rock and Ice","Mangroves")
+biome_poly_sub<-biome_poly[which(biome_poly$biomes%in%exclude_biomes==FALSE),]
+biome_poly_sub$biomes<-droplevels(biome_poly_sub$biomes)
 
 # Change shapefile projections --------------------------------------------
 crs_ref<-crs(total_richness)
 biomes_shp_proj <- spTransform(biome_poly_sub, CRSobj = crs_ref)
 
+biomes_shp_proj$biomes<-factor(biomes_shp_proj$biomes, 
+                               levels=c("Moist_Forest","Savannas","Tropical_Grasslands",
+                                        "Dry_Forest","Xeric_Woodlands","Mediterranean_Woodlands",
+                                        "Temperate_Grasslands", "Coniferous_Forests",
+                                        "Temperate_Mixed",
+                                        "Taiga","Tundra"))
+
+
 
 
 # Plot biomes shapefile ---------------------------------------------------
 # manually set the colors for the plot!
-bio_colors <- c('#a6cee3','#1f78b4','#b2df8a','#33a02c','#fb9a99',
-                '#e31a1c','#fdbf6f','#ff7f00','#cab2d6','#6a3d9a','#ffff99')
+bio_colors <- c('#33a02c','#b2df8a', '#ffff99','#fdbf6f','#ff7f00','#e31a1c','#fb9a99','#1f78b4','#a6cee3',
+                '#cab2d6','#6a3d9a')
 
 # plot using new colors
-biomes_shp_proj$biomes<-droplevels(biomes_shp_proj$biomes)
+cols_wes=c(wes_palette("Darjeeling",6,type="continuous"),
+           wes_palette("Cavalcanti",5,type="continuous"))
+
 
 names_tmp<-gsub("_"," ",levels(biomes_shp_proj$biomes))
+
+### Dataframe of colours for other analysis
+Colours_biomes<-data.frame(biome=levels(biomes_shp_proj$biomes), color=bio_colors)
+write.csv(Colours_biomes, "./outputs/colours_biomes.csv")
 
 pdf("./figs/Biomes_shpfile1.pdf")
 spplot(biomes_shp_proj,col.regions=bio_colors,
@@ -84,7 +102,14 @@ dev.off()
 pdf("./figs/Biomes_shpfile2.pdf")
 qtm(biomes_shp_proj, fill="biomes", fill.style="fixed",
     fill.labels=names_tmp,
-    fill.palette=bio_colors)
+    fill.palette=bio_colors, 
+    fill.title="Biomes")
+dev.off()
+
+pdf("./figs/Biomes_shpfile3.pdf")
+qtm(biomes_shp_proj, fill="biomes", fill.style="fixed",
+    fill.labels=names_tmp,
+    fill.palette=cols_wes)
 dev.off()
 
 
