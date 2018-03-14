@@ -44,13 +44,13 @@ Growth_form$SPECIES_STD<-gsub(" ","_",Growth_form$SPECIES_STD)
 
 # Presence absence matrix -------------------------------------------------
 TraitSpecies <- unique(rownames(Traits_phylo))
-spMatrix <- splistToMatrix(spPresence,TraitSpecies)
+spMatrix_sub <- splistToMatrix(spPresence,TraitSpecies)
 
 # Extract cells per biome
 ## Include biome classification in each cell 
 biome_name<-biome_shp$biomes
 
-cells_biomes<-data.frame(cells=rownames(spMatrix))
+cells_biomes<-data.frame(cells=rownames(spMatrix_sub))
 cells_biomes$biomes<-NA
 
 for (i in 1:length(biome_name)){
@@ -64,8 +64,8 @@ for (i in 1:length(biome_name)){
 cells_biomes<-na.omit(cells_biomes)
 
 ## Biome presence and absence matrix
-biome_PAbs_matrix<-spMatrix
-indx<-match(rownames(spMatrix),cells_biomes$cells)
+biome_PAbs_matrix<-spMatrix_sub
+indx<-match(rownames(spMatrix_sub),cells_biomes$cells)
 rownames(biome_PAbs_matrix)<-cells_biomes$biomes[indx]
 
 # Filter cells without information
@@ -101,10 +101,6 @@ Biomes_pabs_sp<-Biomes_Abun_sp
 Biomes_pabs_sp[which(Biomes_pabs_sp>0)]<-1
 
 Biomes_di = distinctiveness(Biomes_pabs_sp, Dist_matrix)
-
-# Calculating distinctiveness using relative abundance (number of grids) of species ----
-#Biomes_di_abundance = distinctiveness_mod(Biome_relAbun, Dist_matrix)
-
 Biomes_di_clean<-
   Biomes_di%>%
   as.matrix %>% 
@@ -115,53 +111,74 @@ Biomes_di_clean<-
   filter(!is.na(Di))
 
 
+## Calculate restrictness
+## A 0 value indicates that the focal species is present in all the sites.
+rest_species<-
+  foreach(i=1:length(biomes_names), .combine = rbind)%do%
+  {
+    indx<-which(rownames(biome_PAbs_matrix)==biome_name[i])
+    biome_PAbs_tmp<-biome_PAbs_matrix[indx,]
+    rest_species<-restrictedness(pres_matrix = biome_PAbs_tmp)
+    rest_species$Biome<-biome_name[i]
+   
+    rest_species
+  }
+
+## Exclude all the Ri == 1, no present in any cell 
+rest_species<-
+  rest_species %>% 
+  filter(Ri!=1)
+
+
+## Merge Di and Ri
+Biome_Di_Ri<-merge(Biomes_di_clean, rest_species)
+Biome_Di_Ri$FunDi<-Biome_Di_Ri$Di*Biome_Di_Ri$Ri
+
+write.csv(Biome_Di_Ri, "./outputs/Biome_Di_Ri_phylo.csv")
+
 ### Exploring data
-Biomes_di_clean %>% 
+Biome_Di_Ri %>% 
   group_by(Biome) %>% 
-  dplyr::summarise(mean_di=mean(Di),
-            sd_di=sd(Di), max=max(Di))
+  dplyr::summarise(median_di=median(FunDi),
+            sd_di=sd(FunDi), max=max(FunDi))
 
 
 ### Include Growth form
-indx<-match(Biomes_di_clean$species, Growth_form$SPECIES_STD)
-Biomes_di_clean$GROWTHFORM_STD<-Growth_form$GROWTHFORM_STD[indx]
+indx<-match(Biome_Di_Ri$species, Growth_form$SPECIES_STD)
+Biome_Di_Ri$GROWTHFORM_STD<-Growth_form$GROWTHFORM_STD[indx]
 
-biome_name<-unique(Biomes_di_clean$Biome)
+biome_name<-unique(Biome_Di_Ri$Biome)
 
 ### Distribution of Distinctiveness per biome ----
 ## Overall
 
-Biomes_di_clean %>% 
-  ggplot(aes(x=Di, y=Biome, height=..density..)) +
+Biome_Di_Ri %>% 
+  ggplot(aes(x=FunDi, y=Biome, height=..density..)) +
   geom_density_ridges()
 
 
-Biomes_di_clean %>% 
-  group_by(Biome) %>% 
-  dplyr::summarise(mean_di=mean(Di),
-                   sd_di=sd(Di), 
-                   max=max(Di))
-
 ## There are around 122 species with extreme values
-Biomes_di_clean %>% 
-  filter(Di>8) %>%
+Biome_Di_Ri %>% 
+  filter(FunDi>10) %>%
   group_by(Biome) %>% 
   dplyr::summarise(N_sp=n_distinct(species))
 
-Biomes_di_clean<-
-  Biomes_di_clean %>% 
-  filter(Di<8)
+Biome_Di_Ri<-
+  Biome_Di_Ri %>% 
+  filter(Di<10)
 
-Biomes_di_clean %>% 
-  ggplot(aes(x=Di, y=Biome, height=..density..)) +
+Biome_Di_Ri %>% 
+  ggplot(aes(x=FunDi, y=Biome, height=..density..)) +
   geom_density_ridges()
+
+
 
 
 dist<-
 foreach(i=1:length(biome_name), .combine = rbind) %do%{
-  a<-Biomes_di_clean %>% 
+  a<-Biome_Di_Ri %>% 
     filter(Biome==biome_name[i]) %>% 
-    filter(Di>=quantile(Di, 0.7)) %>% 
+    filter(FunDi>=quantile(FunDi, 0.7)) %>% 
     group_by(GROWTHFORM_STD) %>% 
     dplyr::summarise(N_sp=length(GROWTHFORM_STD)) %>% 
     mutate(Dist="Dist",Biome=biome_name[i],prop=round(N_sp/sum(N_sp)*100,2))
@@ -169,9 +186,9 @@ foreach(i=1:length(biome_name), .combine = rbind) %do%{
 
 redunt<-
   foreach(i=1:length(biome_name), .combine = rbind) %do%{
-    a<-Biomes_di_clean %>% 
+    a<-Biome_Di_Ri %>% 
       filter(Biome==biome_name[i]) %>% 
-      filter(Di<quantile(Di, 0.2)) %>% 
+      filter(FunDi<quantile(FunDi, 0.2)) %>% 
       group_by(GROWTHFORM_STD) %>% 
       dplyr::summarise(N_sp=length(GROWTHFORM_STD)) %>% 
       mutate(Dist="Redun",Biome=biome_name[i],prop=round(N_sp/sum(N_sp)*100,2))
