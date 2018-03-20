@@ -23,7 +23,7 @@ rescaleRas <- function(x, x.min = NULL, x.max = NULL, new.min = 0, new.max = 1) 
 
 # data --------------------------------------------------------------------
 # 1. Trait data frame
-Traits_phylo<-read.table("./data/base/Danilo_data/traits4susy.csv", header = TRUE)
+Traits_phylo<-read.csv("./data/processed/traits_ALLMB.csv")
 
 #2. Presence matrix of species
 spPresence<-read.csv("./data/base/BIEN_2_Ranges/presence100km.csv")
@@ -70,7 +70,7 @@ rownames(biome_PAbs_matrix)<-cells_biomes$biomes[indx]
 
 # Filter cells without information
 biome_PAbs_matrix<-biome_PAbs_matrix[!is.na(rownames(biome_PAbs_matrix)),]
-
+rm(spMatrix_sub)
 
 # Compute distance matrix of trait between each pair of species  ----------
 Dist_matrix<-compute_dist_matrix(Traits_phylo,metric="euclidean",center = TRUE,
@@ -152,6 +152,7 @@ biome_name<-unique(Biome_Di_Ri$Biome)
 ### Distribution of Distinctiveness per biome ----
 ## Overall
 
+
 Biome_Di_Ri %>% 
   ggplot(aes(x=FunDi, y=Biome, height=..density..)) +
   geom_density_ridges()
@@ -167,10 +168,11 @@ Biome_Di_Ri<-
   Biome_Di_Ri %>% 
   filter(Di<10)
 
+pdf("./figs/FunDi_biomes_Zanne_phylo.pdf")
 Biome_Di_Ri %>% 
   ggplot(aes(x=FunDi, y=Biome, height=..density..)) +
   geom_density_ridges()
-
+dev.off()
 
 
 
