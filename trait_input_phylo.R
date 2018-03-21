@@ -13,8 +13,8 @@ Trait_BIEN_df$scrubbed_species_binomial<-gsub(" ","_",Trait_BIEN_df$scrubbed_spe
 #2. Phylogenetic data
 Seed_phylo<-read.tree("./data/base/big_seed_plant_trees_v0.1/ALLMB.tre")
 
-# Number of species in the phylogeny that have some trai† information
-length(which(Seed_phylo2$tip.label%in%Trait_BIEN_df$scrubbed_species_binomial))
+# Number of species in the phylogeny that have some trait information
+length(which(Seed_phylo$tip.label%in%Trait_BIEN_df$scrubbed_species_binomial))
 
 
 # Data selection ----------------------------------------------------------
