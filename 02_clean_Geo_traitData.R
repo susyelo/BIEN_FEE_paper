@@ -25,7 +25,8 @@ fun_traits<-c("whole plant leaf area per whole plant leaf dry mass",
 
 Traits_BIEN_sub<-
   Traits_BIEN %>%
-  filter(trait_name%in%fun_traits)
+  filter(trait_name%in%fun_traits) %>% 
+  select(scrubbed_species_binomial,trait_name,trait_value,unit)
 
 Traits_BIEN_sub<-droplevels(Traits_BIEN_sub)
 
@@ -33,7 +34,9 @@ Traits_BIEN_sub<-droplevels(Traits_BIEN_sub)
 ## Trait values such as "." or "*" and even "0"
 Traits_BIEN_sub<-
   Traits_BIEN_sub %>% 
-  filter(trait_value!="."&trait_value!="*"&trait_value!="0")
+  filter(trait_value!=".") %>% 
+  filter(trait_value!="*") %>% 
+  filter(trait_value!="0")
 
 Traits_BIEN_sub<-droplevels(Traits_BIEN_sub)
 
@@ -65,10 +68,20 @@ Traits_BIEN_sub %>%
 Traits_BIEN_sub %>%
   count(scrubbed_species_binomial,trait_name)
 
+## Double checking the units of the traits
+Traits_BIEN_sub %>% 
+  group_by(trait_name,unit) %>%
+  summarise(N_sp=length(scrubbed_species_binomial))
 
+# Change class from factor to numeric
 Traits_BIEN_sub$trait_value_NU<-as.numeric(as.character(Traits_BIEN_sub$trait_value))
-## Nas are produced in some fields where the trait value is characters
-# such as "dead" "sacrificed"
+## Nas are produced in some fields with weird values, so these help us to flag observation with potential errors
+Traits_BIEN_sub$trait_value[is.na(Traits_BIEN_sub$trait_value_NU)]
+
+## There is an observation that has a comma
+Traits_BIEN_sub$trait_value<-gsub(",","",Traits_BIEN_sub$trait_value)
+Traits_BIEN_sub$trait_value_NU<-as.numeric(as.character(Traits_BIEN_sub$trait_value))
+#Traits_BIEN_sub$trait_value[is.na(Traits_BIEN_sub$trait_value_NU)]
 
 # Calculate main trait values per species ---------------------------------
 # Only one trait value per species
@@ -79,18 +92,10 @@ Mean_Traits_BIEN <-
 
 var_names<-as.character(unique(Mean_Traits_BIEN$trait_name))
 
-# Create trait values table, I use sum function to get rid of the NAs
-# using mean also work since there is only one trait value per trait name
+# Create trait values dataframe in a wide format
 trait_df_wide<-
   Mean_Traits_BIEN  %>% 
-  spread(trait_name,trait_value) %>% 
-  group_by(scrubbed_species_binomial) %>%
-  summarise_at(var_names,sum,na.rm=TRUE)
-
-# Changing zeros to NAS
-trait_df_wide<-as.data.frame(trait_df_wide)
-trait_df_wide[trait_df_wide == 0]<-NA
-
+  spread(trait_name,trait_value)
 
 # Include growth form -----------------------------------------------------
 GrowForm_tmp<-
