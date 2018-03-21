@@ -10,33 +10,39 @@ library(ade4)
 Trait_BIEN_df<-read.csv("./data/processed/BIEN_trait_GrowthForm.csv", row.names=1)
 Trait_BIEN_df$scrubbed_species_binomial<-gsub(" ","_",Trait_BIEN_df$scrubbed_species_binomial)
 
-#2. Phylogenetic data
+#2. Range maps data
+spPresence<-read.csv("./data/base/BIEN_2_Ranges/presence100km.csv", col.names=c("Species","Y","X"))
+
+#3. Phylogenetic data
 Seed_phylo<-read.tree("./data/base/big_seed_plant_trees_v0.1/ALLMB.tre")
 
-# Number of species in the phylogeny that have some trait information
-length(which(Seed_phylo$tip.label%in%Trait_BIEN_df$scrubbed_species_binomial))
 
-
-# Data selection ----------------------------------------------------------
+# Data filter and selection ----------------------------------------------------------
+# Filter species that have range maps information
 Trait_BIEN<-
-  Trait_BIEN_df %>% 
-  dplyr::select(Wood_density,Leaf_N,SLA,Seed_mass,Height,Leaf_P)
+Trait_BIEN_df %>% 
+  filter(scrubbed_species_binomial%in%unique(spPresence$Species)) %>% 
+  dplyr::select(scrubbed_species_binomial, Wood_density,Leaf_N,SLA,Seed_mass,Height,Leaf_P)
 
-rownames(Trait_BIEN)<-Trait_BIEN_df$scrubbed_species_binomial
+rownames(Trait_BIEN)<-Trait_BIEN$scrubbed_species_binomial
+
+# Data exploration --------------------------------------------------------
+# Number of species in the phylogeny that have some trait information
+length(which(unique(Trait_BIEN$scrubbed_species_binomial)%in%Seed_phylo$tip.label))
+
 
 # Trait and phylo match ----------------------------------------------------------
-phylo_traits<- match.phylo.data(Seed_phylo, Trait_BIEN)
-
-# Create species column and move it to the first position
+phylo_traits<- match.phylo.data(Seed_phylo, Trait_BIEN[,-1])
 phylo_traits$data$species<-rownames(phylo_traits$data)
 
+# Create species column and move it to the first position
 phylo_traits$data<-
   phylo_traits$data %>% 
   select(species, everything())
 
+# Fill trait data using phylo info
 traits_inPhylo<- phylopars(trait_data = phylo_traits$data,tree = phylo_traits$phy,
                      pheno_error = F, phylo_correlated = F, pheno_correlated = F)
-
 
 traits_completed<-as.data.frame(traits_inPhylo$anc_recon[1:length(phylo_traits$phy$tip.label),])
 
@@ -64,7 +70,7 @@ pca <- dudi.pca(traits_completed[,-7],
 plot(pca$li[,1:2])
 
 ## Extreme axis values based mainly on extreme seed mass values
-sp_to_drop<-rownames(pca$li[which(pca$li$Axis2>10 & pca$li$Axis1>5),])
+sp_to_drop<-rownames(pca$li[which(pca$li$Axis2<(-5) & pca$li$Axis1>4),])
 write.csv(sp_to_drop, "./outputs/sp_outliers.csv")
 
 traits_completed<-
