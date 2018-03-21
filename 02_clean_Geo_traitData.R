@@ -26,7 +26,7 @@ fun_traits<-c("whole plant leaf area per whole plant leaf dry mass",
 Traits_BIEN_sub<-
   Traits_BIEN %>%
   filter(trait_name%in%fun_traits) %>% 
-  select(scrubbed_species_binomial,trait_name,trait_value,unit)
+  dplyr::select(scrubbed_species_binomial,trait_name,trait_value,unit)
 
 Traits_BIEN_sub<-droplevels(Traits_BIEN_sub)
 
