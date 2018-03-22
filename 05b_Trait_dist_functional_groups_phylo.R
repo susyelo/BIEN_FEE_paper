@@ -43,7 +43,7 @@ Growth_form$SPECIES_STD<-gsub(" ","_",Growth_form$SPECIES_STD)
 #proj4string(r_Total_Rich)==proj4string(biome_shp)
 
 # Presence absence matrix -------------------------------------------------
-TraitSpecies <- unique(rownames(Traits_phylo))
+TraitSpecies <- unique(Traits_phylo$species)
 spMatrix_sub <- splistToMatrix(spPresence,TraitSpecies)
 
 # Extract cells per biome
@@ -73,7 +73,8 @@ biome_PAbs_matrix<-biome_PAbs_matrix[!is.na(rownames(biome_PAbs_matrix)),]
 rm(spMatrix_sub)
 
 # Compute distance matrix of trait between each pair of species  ----------
-Dist_matrix<-compute_dist_matrix(Traits_phylo,metric="euclidean",center = TRUE,
+rownames(Traits_phylo)<-Traits_phylo$species
+Dist_matrix<-compute_dist_matrix(Traits_phylo[,-7],metric="euclidean",center = TRUE,
                                  scale = TRUE) ## This can take a while
 
 
@@ -100,7 +101,12 @@ Biome_relAbun<-make_relative(Biomes_Abun_sp)
 Biomes_pabs_sp<-Biomes_Abun_sp
 Biomes_pabs_sp[which(Biomes_pabs_sp>0)]<-1
 
+# Number of species that do not fall in any of the biomes
+# tmp<-colMeans(Biomes_pabs_sp)
+# length(which(tmp==0)) ## There are around 80 species
+
 Biomes_di = distinctiveness(Biomes_pabs_sp, Dist_matrix)
+
 Biomes_di_clean<-
   Biomes_di%>%
   as.matrix %>% 
@@ -124,17 +130,64 @@ rest_species<-
     rest_species
   }
 
-## Exclude all the Ri == 1, no present in any cell 
+## Exclude all that are not present in any biome cell (which are not in Biome_Di)
 rest_species<-
   rest_species %>% 
-  filter(Ri!=1)
-
+  filter(species%in%unique(Biomes_di_clean$species))
 
 ## Merge Di and Ri
 Biome_Di_Ri<-merge(Biomes_di_clean, rest_species)
-Biome_Di_Ri$FunDi<-Biome_Di_Ri$Di*Biome_Di_Ri$Ri
+
+## Scaling Di values per biome
+Biomes_di_clean<-
+  Biomes_di_clean %>% 
+  group_by(Biome) %>% 
+  mutate(DiScale=rescaleRas(Di))
+
+Biome_Di_Ri$FunDi<-(Biome_Di_Ri$DiScale+Biome_Di_Ri$Ri)/2
+Biome_Di_Ri$FunDi2<-Biome_Di_Ri$Di*Biome_Di_Ri$Ri
 
 write.csv(Biome_Di_Ri, "./outputs/Biome_Di_Ri_phylo.csv")
+
+
+## Heatmaps
+# Total headmap
+
+Biome_Di_Ri$bin_Di<-cut(Biome_Di_Ri$Di, breaks = 10)
+Biome_Di_Ri$bin_Ri<-cut(Biome_Di_Ri$Ri, breaks = 10)
+
+get_matrix<-function(df=Biome_Di_Ri, Biome_name="Total")
+{
+  if(Biome_name=="Total"){
+    tmp<-df
+  }else{
+    tmp<-df %>% 
+      dplyr::filter(Biome==Biome_name) %>% 
+      droplevels()
+  }
+  data<-table(tmp$bin_Ri,tmp$bin_Di)
+}
+
+biome_name=unique(Biome_Di_Ri$Biome)
+
+for(i in 1:length(biome_name)){
+  png(paste("./figs/Di_Ri_heatmaps/Heatmap_", biome_name[i],".png",sep=""))
+  levelplot(log(get_matrix(df=Biome_Di_Ri,Biome_name=biome_name[i])+1),
+            col.regions = heat.colors(100)[length(heat.colors(100)):1], 
+            xlab="Ri",ylab="Di",ylim=c(levels(Biome_Di_Ri$bin_Di)),
+            xlim=c(levels(Biome_Di_Ri$bin_Ri)),
+            scales=list(x=list(rot=90)), main=biome_name[i])
+  dev.off()
+}
+
+
+
+png("./figs/Taiga_Ri_Di.png")
+levelplot(log(data+1),
+          col.regions = heat.colors(100)[length(heat.colors(100)):1], 
+          xlab="Ri",ylab="Di")
+dev.off()
+
 
 ### Exploring data
 Biome_Di_Ri %>% 
@@ -159,23 +212,6 @@ Biome_Di_Ri %>%
 
 
 ## There are around 122 species with extreme values
-Biome_Di_Ri %>% 
-  filter(FunDi>10) %>%
-  group_by(Biome) %>% 
-  dplyr::summarise(N_sp=n_distinct(species))
-
-Biome_Di_Ri<-
-  Biome_Di_Ri %>% 
-  filter(Di<10)
-
-pdf("./figs/FunDi_biomes_Zanne_phylo.pdf")
-Biome_Di_Ri %>% 
-  ggplot(aes(x=FunDi, y=Biome, height=..density..)) +
-  geom_density_ridges()
-dev.off()
-
-
-
 dist<-
 foreach(i=1:length(biome_name), .combine = rbind) %do%{
   a<-Biome_Di_Ri %>% 
@@ -210,7 +246,7 @@ total_dist<-rbind(dist,redunt)
 
 ## Total growth form proportion
 
-pdf("./figs/Growth_total_phylo.pdf", width = 12)
+pdf("./figs/Growth_total_phyloSeed.pdf", width = 12)
 ggplot() + geom_bar(aes(y = prop, x = Biome, fill = GROWTHFORM_STD), data = total_dist,
                     stat="identity")+
   coord_flip() +
@@ -219,7 +255,7 @@ dev.off()
 
 
 
-pdf("./figs/Growth_distinctive_phylo.pdf", width = 12)
+pdf("./figs/Growth_distinctive_phyloSeed.pdf", width = 12)
 ggplot() + geom_bar(aes(y = prop, x = Biome, fill = GROWTHFORM_STD), data = dist,
                     stat="identity")+
   coord_flip() +
@@ -227,7 +263,7 @@ ggplot() + geom_bar(aes(y = prop, x = Biome, fill = GROWTHFORM_STD), data = dist
 dev.off()
 
 
-pdf("./figs/Growth_redundant_phylo.pdf", width = 12)
+pdf("./figs/Growth_redundant_phyloSeed.pdf", width = 12)
 ggplot() + geom_bar(aes(y = prop, x = Biome, fill = GROWTHFORM_STD), data = redunt,
                           stat="identity")+
   coord_flip() +
@@ -239,4 +275,5 @@ ggplot(redunt) +
   # Add the stacked bar
   geom_bar(aes(x=as.factor(Biome), y=prop, fill=GROWTHFORM_STD),stat="identity") +
   coord_flip() 
+
 
