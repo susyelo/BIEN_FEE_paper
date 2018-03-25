@@ -64,3 +64,31 @@ spMatrix_biomes<-function(spMatrix, biome_shp, raster_ref){
                           Biomes_pabs_cells=biome_PAbs_matrix)
 }
 
+
+
+
+## Di vs RI heatmaps
+Di_Ri_heatmaps<-function(Biome_Di_Ri, xvar, yvar, breaks=10, Biome_toPlot, 
+                         col.regions= heat.colors(100)[length(heat.colors(100)):1]){
+  
+  
+  Biome_Di_Ri$bin_Di<-cut(yvar, breaks = breaks,dig.lab = 1,include.lowest = TRUE)
+  Biome_Di_Ri$bin_Ri<-cut(xvar, breaks = breaks,dig.lab = 1,include.lowest = TRUE)
+  
+  Biome_Di_Ri_tmp<-
+    Biome_Di_Ri %>% 
+    dplyr::filter(Biome==Biome_toPlot) %>% 
+    droplevels()
+  
+  data<-table(Biome_Di_Ri_tmp$bin_Ri,Biome_Di_Ri_tmp$bin_Di)
+  
+  levelplot(log(data),
+            col.regions = col.regions, 
+            xlab="Ri",ylab="Di",
+            ylim=as.character(seq(0.05,1,by=0.1)),
+            xlim=as.character(seq(0.05,1,by=0.1)),
+            scales=list(x=list(rot=90)), main=Biome_toPlot)
+  
+  
+}
+

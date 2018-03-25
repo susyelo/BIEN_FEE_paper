@@ -116,127 +116,14 @@ write.csv(Biome_Di_Ri, "./outputs/Biome_Di_Ri_phylo.csv")
 ## Heatmaps
 # Total headmap
 
-Biome_Di_Ri$bin_Di<-cut(Biome_Di_Ri$DiScale, breaks = 10)
-Biome_Di_Ri$bin_Ri<-cut(Biome_Di_Ri$Ri, breaks = 10)
 
-get_matrix<-function(df=Biome_Di_Ri, Biome_name="Total")
-{
-  if(Biome_name=="Total"){
-    tmp<-df
-  }else{
-    tmp<-df %>% 
-      dplyr::filter(Biome==Biome_name) %>% 
-      droplevels()
-  }
-  data<-table(tmp$bin_Ri,tmp$bin_Di)
-}
-
-biome_name=unique(Biome_Di_Ri$Biome)
-
-for(i in 1:length(biome_name)){
-  png(paste("./figs/Di_Ri_heatmaps/Heatmap_", biome_name[i],".png",sep=""))
-  levelplot(log(get_matrix(df=Biome_Di_Ri,Biome_name=biome_name[i])+1),
-            col.regions = heat.colors(100)[length(heat.colors(100)):1], 
-            xlab="Ri",ylab="Di",ylim=c(levels(Biome_Di_Ri$bin_Di)),
-            xlim=c(levels(Biome_Di_Ri$bin_Ri)),
-            scales=list(x=list(rot=90)), main=biome_name[i])
-  dev.off()
-}
-
-
-
-png("./figs/Taiga_Ri_Di.png")
-levelplot(log(data+1),
-          col.regions = heat.colors(100)[length(heat.colors(100)):1], 
-          xlab="Ri",ylab="Di")
-dev.off()
-
-
-### Exploring data
-Biome_Di_Ri %>% 
-  group_by(Biome) %>% 
-  dplyr::summarise(median_di=median(FunDi),
-            sd_di=sd(FunDi), max=max(FunDi))
-
-
-### Include Growth form
-indx<-match(Biome_Di_Ri$species, Growth_form$SPECIES_STD)
-Biome_Di_Ri$GROWTHFORM_STD<-Growth_form$GROWTHFORM_STD[indx]
-
-biome_name<-unique(Biome_Di_Ri$Biome)
-
-### Distribution of Distinctiveness per biome ----
-## Overall
-
-
-Biome_Di_Ri %>% 
-  ggplot(aes(x=FunDi, y=Biome, height=..density..)) +
-  geom_density_ridges()
-
-
-## There are around 122 species with extreme values
-dist<-
-foreach(i=1:length(biome_name), .combine = rbind) %do%{
-  a<-Biome_Di_Ri %>% 
-    filter(Biome==biome_name[i]) %>% 
-    filter(FunDi>=quantile(FunDi, 0.7)) %>% 
-    group_by(GROWTHFORM_STD) %>% 
-    dplyr::summarise(N_sp=length(GROWTHFORM_STD)) %>% 
-    mutate(Dist="Dist",Biome=biome_name[i],prop=round(N_sp/sum(N_sp)*100,2))
-}
-
-redunt<-
-  foreach(i=1:length(biome_name), .combine = rbind) %do%{
-    a<-Biome_Di_Ri %>% 
-      filter(Biome==biome_name[i]) %>% 
-      filter(FunDi<quantile(FunDi, 0.2)) %>% 
-      group_by(GROWTHFORM_STD) %>% 
-      dplyr::summarise(N_sp=length(GROWTHFORM_STD)) %>% 
-      mutate(Dist="Redun",Biome=biome_name[i],prop=round(N_sp/sum(N_sp)*100,2))
-  }
-
-dist<-
-dist %>% 
-  filter(GROWTHFORM_STD!="Aquatic")
-
-redunt<-
-  redunt %>% 
-  filter(GROWTHFORM_STD!="Aquatic")
-
-
-
-total_dist<-rbind(dist,redunt)
-
-## Total growth form proportion
-
-pdf("./figs/Growth_total_phyloSeed.pdf", width = 12)
-ggplot() + geom_bar(aes(y = prop, x = Biome, fill = GROWTHFORM_STD), data = total_dist,
-                    stat="identity")+
-  coord_flip() +
-  ggtitle("Total")
-dev.off()
-
-
-
-pdf("./figs/Growth_distinctive_phyloSeed.pdf", width = 12)
-ggplot() + geom_bar(aes(y = prop, x = Biome, fill = GROWTHFORM_STD), data = dist,
-                    stat="identity")+
-  coord_flip() +
-  ggtitle("Distinctive species")
-dev.off()
-
-
-pdf("./figs/Growth_redundant_phyloSeed.pdf", width = 12)
-ggplot() + geom_bar(aes(y = prop, x = Biome, fill = GROWTHFORM_STD), data = redunt,
-                          stat="identity")+
-  coord_flip() +
-  ggtitle("Redundant species")
-dev.off()  
-
-
-ggplot(redunt) +      
-  # Add the stacked bar
-  geom_bar(aes(x=as.factor(Biome), y=prop, fill=GROWTHFORM_STD),stat="identity") +
-  coord_flip() 
-
-
+foreach (index=1:length(Biomes_name))%do%{
+  
+  png(paste("./figs/Di_Ri_heatmaps/Heatmap_", Biomes_name[index],".png",sep=""))
+  Di_Ri_heatmaps(Biome_Di_Ri = Biome_Di_Ri, 
+                 xvar = Biome_Di_Ri$Ri,
+                 yvar = Biome_Di_Ri$DiScale,
+                 Biome_toPlot = Biomes_name[index])
+  
+  
+} 
