@@ -73,6 +73,19 @@ Biomes_di_clean<-
   gather(key="Biome",value="Di",-species) %>% 
   filter(!is.na(Di))
 
+# Compute functional Uniqueness per biome ----------------------------
+Biomes_ui = uniqueness(Biomes_pabs$Biomes_pabs_cells, Dist_matrix)
+
+Biomes_ui = apply(Biome_relAbun, 1,
+               function(x, dist_m) {
+                 smaller_com = x[x > 0 & !is.na(x)]
+                 uniqueness(t(as.matrix(smaller_com)), dist_m)
+               }, dist_m = Dist_matrix)
+
+Biomes_ui_clean<-do.call(rbind.data.frame, Biomes_ui)
+Biomes_ui_clean$Biome<-gsub('[0-9]+', '', rownames(tmp))
+Biomes_ui_clean$Biome<-gsub('\\.', '', tmp$biomes)
+
 
 biome_names=biome_shp$biomes
 
@@ -104,6 +117,7 @@ Biomes_di_clean<-
 
 ## Merge Di and Ri
 Biome_Di_Ri<-merge(Biomes_di_clean, rest_species)
+Biome_Di_Ri<-merge(Biome_Di_Ri,Biomes_ui_clean)
 
 Biome_Di_Ri$FunDi<-(Biome_Di_Ri$DiScale+Biome_Di_Ri$Ri)/2
 Biome_Di_Ri$FunDi2<-Biome_Di_Ri$Di*Biome_Di_Ri$Ri
@@ -120,7 +134,7 @@ foreach (index=1:length(biome_names))%do%{
   png(paste("./figs/Di_Ri_heatmaps/Heatmap_", biome_names[index],".png",sep=""))
   print(Di_Ri_heatmaps(Biome_Di_Ri = Biome_Di_Ri, 
                  xvar = Biome_Di_Ri$Ri,
-                 yvar = Biome_Di_Ri$DiScale,
+                 yvar = Biome_Di_Ri$Ui,
                  Biome_toPlot = biome_names[index]))
   dev.off()
   
