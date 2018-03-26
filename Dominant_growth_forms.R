@@ -2,6 +2,9 @@
 library(tidyverse)
 library(BIEN)
 
+# Functions ---------------------------------------------------------------
+source("./functions/Plot_Half_Pies.R")
+
 # data --------------------------------------------------------------------
 # 1. Values of distinctiveness and Restrictedness for species per biome
 Biome_Di_Ri<-read.csv("./outputs/Biome_Di_Ri_phylo.csv", row.names = 1)
@@ -99,6 +102,20 @@ ggplot() + geom_bar(aes(y = prop, x = Biome, fill = GROWTHFORM_STD), data = Dist
 dev.off()
 
 
+## Semicircles pies
+
+tmp<-
+Total %>%
+  filter(Biome=="Moist_Forest")
+cols=wes_palette("Darjeeling",n_distinct(tmp$GROWTHFORM_STD))
+
+library(wesanderson)  
+moist<-parlDiag(tmp$GROWTHFORM_STD, tmp$N_sp, cols =cols, repr = "absolute")
+moist2<-parlDiag(tmp$GROWTHFORM_STD, tmp$N_sp, cols =cols, repr = "absolute")
+
+
+library(cowplot)
+plot_grid(moist, moist2, labels=c("A", "B"), ncol = 2, nrow = 1)
 
 # Trait distribution: Redundant and widespread species --------------------
 
