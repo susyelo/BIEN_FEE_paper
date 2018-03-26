@@ -26,13 +26,21 @@ foreach(i=1:length(sp_tmp))%do% {
 data_family<-read.csv("./data/base/family.csv", row.names = 1)
 
 # Use BIEN database to extract the remaining information
-sp_remain<-data_family$species[is.na(data_family$family)]
-for (i in seq_along(sp_remain)){
-  
-  print(sp_remain[i])
-  family_tmp<-unique(BIEN_taxonomy_species(sp_tmp[i])$scrubbed_family)
-  data_family$family[which(data_family$species==sp_remain[i])]<-family_tmp
-}
+sp_remain<-as.character(data_family$species[is.na(data_family$family)])
 
+data_remain<-
+  foreach(i=1:length(sp_remain),.combine = rbind)%do% {
+    print(paste("Extract",sp_remain[i]))
+    tmp<-unique(BIEN_taxonomy_species(sp_remain[i])$scrubbed_family)
+    df_tmp<-data.frame(species=as.character(sp_remain[i]), family=tmp)
+    df_tmp
+  }
 
+indx<-which(data_family$species%in%data_remain$species)
 
+data_family$family<-as.character(data_family$family)
+data_family$family[indx]<-as.character(data_remain$family)
+
+write.csv(data_family,"./data/base/family_completed.csv")
+
+unique(BIEN_taxonomy_species("Tragus australianus")$scrubbed_family)
