@@ -51,8 +51,6 @@ rownames(Traits_phylo)<-Traits_phylo$species
 traits<-c("Wood_density","Leaf_N","SLA","Seed_mass","Height","Leaf_P")
 
 
-traits<-c("Wood_density","Seed_mass")
-
 Dist_matrix<-compute_dist_matrix(Traits_phylo[,traits],metric="euclidean",
                                  center = TRUE,
                                  scale = TRUE) ## This can take a while
@@ -83,10 +81,10 @@ biome_names=biome_shp$biomes
 rest_species<-
   foreach(i=1:length(biome_names), .combine = rbind)%do%
   {
-    indx<-which(rownames(Biomes_pabs$Biomes_pabs_cells)==biome_name[i])
+    indx<-which(rownames(Biomes_pabs$Biomes_pabs_cells)==biome_names[i])
     biome_PAbs_tmp<-Biomes_pabs$Biomes_pabs_cells[indx,]
     rest_species<-restrictedness(pres_matrix = biome_PAbs_tmp)
-    rest_species$Biome<-biome_name[i]
+    rest_species$Biome<-biome_names[i]
     
     rest_species
   }
@@ -117,13 +115,14 @@ write.csv(Biome_Di_Ri, "./outputs/Biome_Di_Ri_phylo.csv")
 # Total headmap
 
 
-foreach (index=1:length(Biomes_name))%do%{
+foreach (index=1:length(biome_names))%do%{
   
-  png(paste("./figs/Di_Ri_heatmaps/Heatmap_", Biomes_name[index],".png",sep=""))
-  Di_Ri_heatmaps(Biome_Di_Ri = Biome_Di_Ri, 
+  png(paste("./figs/Di_Ri_heatmaps/Heatmap_", biome_names[index],".png",sep=""))
+  print(Di_Ri_heatmaps(Biome_Di_Ri = Biome_Di_Ri, 
                  xvar = Biome_Di_Ri$Ri,
                  yvar = Biome_Di_Ri$DiScale,
-                 Biome_toPlot = Biomes_name[index])
+                 Biome_toPlot = biome_names[index]))
+  dev.off()
   
   
 } 
