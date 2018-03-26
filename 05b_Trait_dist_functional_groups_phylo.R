@@ -83,12 +83,11 @@ Biomes_ui = apply(Biome_relAbun, 1,
                }, dist_m = Dist_matrix)
 
 Biomes_ui_clean<-do.call(rbind.data.frame, Biomes_ui)
-Biomes_ui_clean$Biome<-gsub('[0-9]+', '', rownames(tmp))
-Biomes_ui_clean$Biome<-gsub('\\.', '', tmp$biomes)
+Biomes_ui_clean$Biome<-gsub('[0-9]+', '', rownames(Biomes_ui_clean))
+Biomes_ui_clean$Biome<-gsub('\\.', '', Biomes_ui_clean$Biome)
 
 
 biome_names=biome_shp$biomes
-
 # Compute functional restrictiness per biome ----------------------------
 ## A 0 value indicates that the focal species is present in all the sites.
 rest_species<-
@@ -115,6 +114,12 @@ Biomes_di_clean<-
   group_by(Biome) %>% 
   mutate(DiScale=rescaleRas01(Di))
 
+## Scaling Ui values per biome
+Biomes_ui_clean<-
+  Biomes_ui_clean %>% 
+  group_by(Biome) %>% 
+  mutate(UiScale=rescaleRas01(Ui))
+
 ## Merge Di and Ri
 Biome_Di_Ri<-merge(Biomes_di_clean, rest_species)
 Biome_Di_Ri<-merge(Biome_Di_Ri,Biomes_ui_clean)
@@ -128,15 +133,32 @@ write.csv(Biome_Di_Ri, "./outputs/Biome_Di_Ri_phylo.csv")
 ## Heatmaps
 # Total headmap
 
-
 foreach (index=1:length(biome_names))%do%{
   
   png(paste("./figs/Di_Ri_heatmaps/Heatmap_", biome_names[index],".png",sep=""))
   print(Di_Ri_heatmaps(Biome_Di_Ri = Biome_Di_Ri, 
                  xvar = Biome_Di_Ri$Ri,
-                 yvar = Biome_Di_Ri$Ui,
+                 yvar = Biome_Di_Ri$DiScale,
+                 xlab = "Ri",
+                 ylab = "Di",
                  Biome_toPlot = biome_names[index]))
   dev.off()
-  
-  
+
 } 
+
+
+## Ui vs Ri heatmaps
+dir.create("./figs/Ui_Ri_heatmaps/")
+
+foreach (index=1:length(biome_names))%do%{
+  
+  png(paste("./figs/Ui_Ri_heatmaps/Heatmap_", biome_names[index],".png",sep=""))
+  print(Di_Ri_heatmaps(Biome_Di_Ri = Biome_Di_Ri, 
+                       xvar = Biome_Di_Ri$Ri,
+                       yvar = Biome_Di_Ri$UiScale,
+                       xlab = "Ri",
+                       ylab = "Ui",
+                       Biome_toPlot = biome_names[index]))
+  dev.off()
+
+}
