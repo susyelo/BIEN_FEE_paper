@@ -135,42 +135,76 @@ dev.off()
 # Trait distribution: Redundant and widespread species --------------------
 
 ## Total distribution
-Traits_Biome_Di_Ri %>%
-  ggplot(aes(x=log(Height), y=Biome, height=..density..)) +
-  geom_density_ridges2(aes(x = log(Height), fill = Biome),calc_ecdf = TRUE,
-                       rel_min_height = 0.01,scale = 1)+theme_ridges()
-
-
 cols=wes_palette("Chevalier")[c(1,3,4)]
 
+dir.create("./figs/Trait_dist")
+
+pdf("./figs/Trait_dist/Total_height_dis.pdf")
+Traits_Biome_Di_Ri %>%
+  ggplot(aes(x=log(Height), y=Biome, height=..density..)) +
+  geom_density_ridges(aes(x = log(Height)),
+                      #calc_ecdf = TRUE,
+                      rel_min_height = 0.01,
+                      scale=0.9,na.rm = TRUE,alpha=0.8,fill= cols[1])+
+  ggtitle("Total")+
+  scale_y_discrete(labels=gsub("_"," ", levels(Traits_Biome_Di_Ri$Biome)))+
+  xlim(-5,5)
+dev.off()
+
+pdf("./figs/Trait_dist/Red_Wides_height_dis.pdf", width = 5.5)
+Traits_Biome_Di_Ri %>% 
+  filter(Ri<=0.5 & DiScale < 0.2) %>% 
+  ggplot(aes(x=log(Height), y=Biome, height=..density..)) +
+  geom_density_ridges(aes(x = log(Height)),
+                       #calc_ecdf = TRUE,
+                       rel_min_height = 0.01,
+                       scale=0.9,na.rm = TRUE,alpha=0.8,fill= cols[1])+
+  ggtitle("Redundant & widespread species")+
+  scale_y_discrete(labels=NULL)+
+  xlim(-5,5)+
+  ylab(" ")
+dev.off()
+
+
+pdf("./figs/Trait_dist/Total_height_dis_GF.pdf",width = 8)
 Traits_Biome_Di_Ri %>% 
   ggplot(aes(x=log(Height), y=Biome, height=..density..)) +
   geom_density_ridges2(aes(x = log(Height), fill = paste(Biome, GROWTHFORM_GEN)),
-                      calc_ecdf = TRUE,
-                      rel_min_height = 0.01,
-                      scale=1,na.rm = TRUE,alpha = .8, color = "white")+
+                       #calc_ecdf = TRUE,
+                       rel_min_height = 0.01,
+                       stat = "density",
+                       scale=1,na.rm = TRUE,alpha = .8, color = "white")+
+  xlim(-3,4.5)+
   scale_fill_cyclical(values = cols)+
-  theme_ridges(grid = FALSE)
-
-
-
-
-Traits_Biome_Di_Ri %>% 
-  filter(Ri<=0.5 & DiScale > 0.1) %>% 
-  ggplot(aes(x=log(Height), y=Biome, height=..density..)) +
-  geom_density_ridges2(aes(x = log(Height), fill = Biome),calc_ecdf = TRUE,
-                       rel_min_height = 0.01,scale = 1)+theme_ridges()+ 
-  theme_minimal(base_size = 14) + theme(axis.text.y = element_text(vjust = 0)) 
-
-
-
-
-Traits_Biome_Di_Ri %>% 
-  filter(Ri<=0.5 & DiScale > 0.1) %>% 
-  ggplot(aes(x=log(Height), y=Biome, height=..density..)) +
-  geom_density_ridges(aes(x = log(Height), fill = paste(Biome, GROWTHFORM_GEN)),
-                      scale=2,na.rm = TRUE,alpha = .8, color = "white")+
+  theme_ridges() +
+  theme_minimal(base_size = 14) + 
+  theme(axis.text.y = element_text(vjust = 0))+
   scale_fill_cyclical(values = cols,
                       labels = c("Herbaceous", "No information", "Woody"),
                       name = "Growth form", guide = "legend")+
-  theme_ridges(grid = FALSE)
+  scale_y_discrete(labels=gsub("_"," ", levels(Traits_Biome_Di_Ri$Biome)))+
+  ggtitle("Total")
+
+dev.off()
+
+pdf("./figs/Trait_dist/Red_Wides_height_dis_GF.pdf",width = 8)
+Traits_Biome_Di_Ri %>% 
+  filter(Ri<=0.5 & DiScale < 0.2) %>% 
+  ggplot(aes(x=log(Height), y=Biome, height=..density..)) +
+  geom_density_ridges2(aes(x = log(Height), fill = paste(Biome, GROWTHFORM_GEN)),
+                       #calc_ecdf = TRUE,
+                       rel_min_height = 0.01,
+                       stat = "density",
+                       scale=1,na.rm = TRUE,alpha = .8, color = "white")+
+  xlim(-3,4.5)+
+  scale_fill_cyclical(values = cols)+
+  theme_ridges() +
+  theme_minimal(base_size = 14) + 
+  theme(axis.text.y = element_text(vjust = 0))+
+  scale_fill_cyclical(values = cols,
+                      labels = c("Herbaceous", "No information", "Woody"),
+                      name = "Growth form", guide = "legend")+
+  ggtitle("Redundant & widespread species")+
+  scale_y_discrete(labels=gsub("_"," ", levels(Traits_Biome_Di_Ri$Biome)))
+
+dev.off()
