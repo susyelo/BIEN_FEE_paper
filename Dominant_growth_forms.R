@@ -1,6 +1,8 @@
 # libraries ---------------------------------------------------------------
 library(tidyverse)
 library(BIEN)
+library(foreach)
+library(wesanderson)
 
 # Functions ---------------------------------------------------------------
 source("./functions/Plot_Half_Pies.R")
@@ -19,6 +21,10 @@ Traits_phylo<-read.csv("./data/processed/traits_ALLMB.csv")
 # 4. Merging Distinctiveness dataframes and traits dataframe
 Traits_Biome_Di_Ri<-merge(Biome_Di_Ri,Traits_phylo)
 
+# 5. Grasses_information
+family_info<-read.csv("./data/base/family_completed.csv", row.names = 1)
+family_info$species<-gsub(" ","_",family_info$species)
+grass_families<-read.csv("./data/base/Grass_and_GrassLike_families.csv")
 
 # Include growth form -----------------------------------------------------
 indx<-match(Traits_Biome_Di_Ri$species,Growth_form$SPECIES_STD)
@@ -30,6 +36,33 @@ Traits_Biome_Di_Ri$GROWTHFORM_GEN<-ifelse(Traits_Biome_Di_Ri$GROWTHFORM_STD%in%w
 Traits_Biome_Di_Ri$GROWTHFORM_GEN[which(is.na(Traits_Biome_Di_Ri$GROWTHFORM_STD))]<-NA
 
 # Include grasses as a Growth form
+indx<-match(Traits_Biome_Di_Ri$species,family_info$species)
+Traits_Biome_Di_Ri$Family<-family_info$family[indx]
+
+grasses<-unique(grass_families$Family)
+Traits_Biome_Di_Ri$GROWTHFORM_STD<-as.character(Traits_Biome_Di_Ri$GROWTHFORM_STD)
+Traits_Biome_Di_Ri$GROWTHFORM_STD[which(Traits_Biome_Di_Ri$Family%in%grasses)]<-"Grass"
+Traits_Biome_Di_Ri$GROWTHFORM_STD<-as.factor(Traits_Biome_Di_Ri$GROWTHFORM_STD)
+
+
+# Change biome levels orders 
+Traits_Biome_Di_Ri$Biome<-factor(Traits_Biome_Di_Ri$Biome, 
+                                 levels=rev(c("Moist_Forest","Savannas","Tropical_Grasslands",
+                                          "Dry_Forest","Xeric_Woodlands","Mediterranean_Woodlands",
+                                          "Temperate_Grasslands","Temperate_Mixed","Coniferous_Forests",
+                                          "Taiga","Tundra")))
+
+# Change Growth forms levels orders
+Traits_Biome_Di_Ri$GROWTHFORM_GEN[is.na(Traits_Biome_Di_Ri$GROWTHFORM_GEN)]<-"Unknown"
+
+Traits_Biome_Di_Ri$GROWTHFORM_STD<-as.character(Traits_Biome_Di_Ri$GROWTHFORM_STD)
+Traits_Biome_Di_Ri$GROWTHFORM_STD[is.na(Traits_Biome_Di_Ri$GROWTHFORM_STD)]<-"Unknown"
+
+Traits_Biome_Di_Ri$GROWTHFORM_STD<-factor(Traits_Biome_Di_Ri$GROWTHFORM_STD,
+                                          levels=c("Tree","Shrub","Herb",
+                                                   "Grass","Vine","Liana",
+                                                   "Non-woody epiphyte","Parasite","Aquatic",
+                                                   "Unknown"))
 
 
 # Extract dominant growth forms per biome ---------------------------------
@@ -71,6 +104,8 @@ Distinctive_widespread<-
   }
 
 
+col_GF<-c(wes_palette("Cavalcanti")[c(2:4,1)],wes_palette("Moonrise2")[2],"grey")
+ 
 dir.create("./figs/Growth_forms")
 
 png("./figs/Growth_forms/Total_proportion.png",width = 500)
@@ -78,7 +113,9 @@ png("./figs/Growth_forms/Total_proportion.png",width = 500)
 ggplot() + geom_bar(aes(y = prop, x = Biome, fill = GROWTHFORM_STD), data = Total,
                     stat="identity")+
   coord_flip() +
-  ggtitle("Total_proportion")
+  scale_fill_manual(values=col_GF)+
+  ggtitle("Total species") +
+  ylab("%")
 
 dev.off()
 
@@ -88,7 +125,9 @@ png("./figs/Growth_forms/Redundant_widespread.png",width = 500)
 ggplot() + geom_bar(aes(y = prop, x = Biome, fill = GROWTHFORM_STD), data = Redundant_widespread,
                     stat="identity")+
   coord_flip() +
-  ggtitle("Redundant widespread")
+  scale_fill_manual(values=col_GF)+
+  ggtitle("Redundant & widespread species")+
+  ylab("%")
 
 dev.off()
 
