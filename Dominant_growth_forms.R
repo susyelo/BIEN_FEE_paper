@@ -3,6 +3,7 @@ library(tidyverse)
 library(BIEN)
 library(foreach)
 library(wesanderson)
+library(ggridges)
 
 # Functions ---------------------------------------------------------------
 source("./functions/Plot_Half_Pies.R")
@@ -42,6 +43,10 @@ Traits_Biome_Di_Ri$Family<-family_info$family[indx]
 grasses<-unique(grass_families$Family)
 Traits_Biome_Di_Ri$GROWTHFORM_STD<-as.character(Traits_Biome_Di_Ri$GROWTHFORM_STD)
 Traits_Biome_Di_Ri$GROWTHFORM_STD[which(Traits_Biome_Di_Ri$Family%in%grasses)]<-"Grass"
+
+# Include the following into the "hebs" category
+joinGF<-c("Vine","Liana","Non-woody epiphyte","Aquatic","Parasite")
+Traits_Biome_Di_Ri$GROWTHFORM_STD[which(Traits_Biome_Di_Ri$GROWTHFORM_STD%in%joinGF)]<-"Herb"
 Traits_Biome_Di_Ri$GROWTHFORM_STD<-as.factor(Traits_Biome_Di_Ri$GROWTHFORM_STD)
 
 
@@ -58,11 +63,23 @@ Traits_Biome_Di_Ri$GROWTHFORM_GEN[is.na(Traits_Biome_Di_Ri$GROWTHFORM_GEN)]<-"Un
 Traits_Biome_Di_Ri$GROWTHFORM_STD<-as.character(Traits_Biome_Di_Ri$GROWTHFORM_STD)
 Traits_Biome_Di_Ri$GROWTHFORM_STD[is.na(Traits_Biome_Di_Ri$GROWTHFORM_STD)]<-"Unknown"
 
+Traits_Biome_Di_Ri$GROWTHFORM_GEN<-factor(Traits_Biome_Di_Ri$GROWTHFORM_GEN, 
+                                          levels=c("woody","herbaceous","Unknown"))
+
+
 Traits_Biome_Di_Ri$GROWTHFORM_STD<-factor(Traits_Biome_Di_Ri$GROWTHFORM_STD,
                                           levels=c("Tree","Shrub","Herb",
-                                                   "Grass","Vine","Liana",
-                                                   "Non-woody epiphyte","Parasite","Aquatic",
-                                                   "Unknown"))
+                                                   "Grass","Unknown"))
+
+
+# Correcting growth form in Tundra ----------------------------------------
+sp_tundra_nonWoody<-
+Traits_Biome_Di_Ri %>% 
+  filter(Biome=="Tundra"&log(Height)<(-2)&GROWTHFORM_GEN=="woody") %>% 
+  select(species)
+
+Traits_Biome_Di_Ri$GROWTHFORM_GEN[which(Traits_Biome_Di_Ri$species%in%sp_tundra_nonWoody$species)]<-"herbaceous"
+Traits_Biome_Di_Ri$GROWTHFORM_STD[which(Traits_Biome_Di_Ri$species%in%sp_tundra_nonWoody$species)]<-"Herb"
 
 
 # Extract dominant growth forms per biome ---------------------------------
@@ -90,71 +107,30 @@ Redundant_widespread<-
       filter(prop > 2.1)
   }
 
-# The number of species per biome in this category is not significant, therefore I decided not included in the analysis
 
-Distinctive_widespread<-
-  foreach(i=1:length(biome_name), .combine = rbind) %do%{
-    a<-Traits_Biome_Di_Ri %>% 
-      filter(Biome==biome_name[i]) %>% 
-      filter(Ri<=0.5 & DiScale > 0.1) %>% 
-      group_by(GROWTHFORM_STD) %>% 
-      dplyr::summarise(N_sp=length(GROWTHFORM_STD)) %>% 
-      mutate(Dist="Dist_wides",Biome=biome_name[i],prop=round(N_sp/sum(N_sp)*100,1)) %>% 
-      filter(prop > 2.1)
-  }
-
-
-col_GF<-c(wes_palette("Cavalcanti")[c(2:4,1)],wes_palette("Moonrise2")[2],"grey")
+col_GF<-c(wes_palette("Cavalcanti")[c(2:4,1)],"grey")
  
 dir.create("./figs/Growth_forms")
 
-png("./figs/Growth_forms/Total_proportion.png",width = 500)
+### Both graphics into one
+Total$Tmnt<-"Total"
+Redundant_widespread$Tmnt<-"RedWid"
 
-ggplot() + geom_bar(aes(y = prop, x = Biome, fill = GROWTHFORM_STD), data = Total,
-                    stat="identity")+
-  coord_flip() +
+new_df<-rbind(Total,Redundant_widespread)
+
+png("./figs/Growth_forms/Total_vs_redundant_species.png", width = 800, height = 500)
+ggplot(data = new_df, 
+       mapping = aes(x = Biome, fill = GROWTHFORM_STD, 
+                     y = ifelse(test = Tmnt == "Total", 
+                                yes = -prop, no = prop))) +
+  geom_bar(stat = "identity") +
+  scale_y_continuous(labels = abs) +
   scale_fill_manual(values=col_GF)+
-  ggtitle("Total species") +
-  ylab("%")
-
+  labs(y = "%") +
+  coord_flip()+
+  geom_hline(yintercept=0)
 dev.off()
 
-
-png("./figs/Growth_forms/Redundant_widespread.png",width = 500)
-
-ggplot() + geom_bar(aes(y = prop, x = Biome, fill = GROWTHFORM_STD), data = Redundant_widespread,
-                    stat="identity")+
-  coord_flip() +
-  scale_fill_manual(values=col_GF)+
-  ggtitle("Redundant & widespread species")+
-  ylab("%")
-
-dev.off()
-
-
-png("./figs/Growth_forms/Distinctive_widespread.png",width = 500)
-ggplot() + geom_bar(aes(y = prop, x = Biome, fill = GROWTHFORM_STD), data = Distinctive_widespread,
-                    stat="identity")+
-  coord_flip() +
-  ggtitle("Distinctive widespread")
-
-dev.off()
-
-
-## Semicircles pies
-
-tmp<-
-Total %>%
-  filter(Biome=="Moist_Forest")
-cols=wes_palette("Darjeeling",n_distinct(tmp$GROWTHFORM_STD))
-
-library(wesanderson)  
-moist<-parlDiag(tmp$GROWTHFORM_STD, tmp$N_sp, cols =cols, repr = "absolute")
-moist2<-parlDiag(tmp$GROWTHFORM_STD, tmp$N_sp, cols =cols, repr = "absolute")
-
-
-library(cowplot)
-plot_grid(moist, moist2, labels=c("A", "B"), ncol = 2, nrow = 1)
 
 # Trait distribution: Redundant and widespread species --------------------
 
@@ -163,6 +139,21 @@ Traits_Biome_Di_Ri %>%
   ggplot(aes(x=log(Height), y=Biome, height=..density..)) +
   geom_density_ridges2(aes(x = log(Height), fill = Biome),calc_ecdf = TRUE,
                        rel_min_height = 0.01,scale = 1)+theme_ridges()
+
+
+cols=wes_palette("Chevalier")[c(1,3,4)]
+
+Traits_Biome_Di_Ri %>% 
+  ggplot(aes(x=log(Height), y=Biome, height=..density..)) +
+  geom_density_ridges2(aes(x = log(Height), fill = paste(Biome, GROWTHFORM_GEN)),
+                      calc_ecdf = TRUE,
+                      rel_min_height = 0.01,
+                      scale=1,na.rm = TRUE,alpha = .8, color = "white")+
+  scale_fill_cyclical(values = cols)+
+  theme_ridges(grid = FALSE)
+
+
+
 
 Traits_Biome_Di_Ri %>% 
   filter(Ri<=0.5 & DiScale > 0.1) %>% 
