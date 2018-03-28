@@ -4,192 +4,138 @@ library(tidyverse)
 library(RColorBrewer)
 library(foreach)
 library(BIEN)
+library(factoextra)
 
 # Functions ---------------------------------------------------------------
 source("./functions/BIEN2.0_RangeMaps_functions.R")
 
 # data --------------------------------------------------------------------
 # 1. Trait data frame
-Traits_phylo<-read.table("./data/base/Danilo_data/traits4susy.csv", header = TRUE)
+Traits_phylo<-read.csv("./data/processed/traits_ALLMB.csv")
 
-#2. Species biomes and functional distictiveness values
-sp_di_ri_biomes<-read.csv("./outputs/Biome_Di_Ri_phylo.csv")
-sp_di_ri_biomes <-
-  sp_di_ri_biomes %>% 
-  dplyr::select(-X)
+# 2. Values of distinctiveness and Restrictedness for species per biome
+Biome_Di_Ri<-read.csv("./outputs/Biome_Di_Ri_phylo.csv", row.names = 1)
 
-# 3. Growth form
-Growth_form<-read.table("./data/base/GrowthForm_Final.txt",header = TRUE)
-Growth_form$SPECIES_STD<-gsub(" ","_",Growth_form$SPECIES_STD)
+# 3. Merging data frames
+Traits_Biome_Di_Ri<-merge(Biome_Di_Ri,Traits_phylo)
 
-# 4. 
-
-## Merging traits and distribution dataframe ----
-Traits_phylo$species<-rownames(Traits_phylo)
-Biome_traits_funDi<-merge(Traits_phylo, sp_di_ri_biomes)
-
-## Include Growth form ----
-indx<-match(Biome_traits_funDi$species, Growth_form$SPECIES_STD)
-Biome_traits_funDi$GROWTHFORM_STD<-Growth_form$GROWTHFORM_STD[indx]
-
-woody<-c("Tree","Liana","Shrub","Woody epiphyte")
-Biome_traits_funDi$GROWTHFORM_GEN<-ifelse(Biome_traits_funDi$GROWTHFORM_STD%in%woody,"woody","herbaceous")
-Biome_traits_funDi$GROWTHFORM_GEN[which(is.na(Biome_traits_funDi$GROWTHFORM_STD))]<-NA
-
-# Create a new levels using the grasses families
-
-# Extract family for each species
-sp_tmp<-unique(Biome_traits_funDi$species)
-sp_tmp<-gsub("_"," ",sp_tmp)
-
-family_tmp<-
-  foreach(i=1:length(sp_tmp))%do% {
-    print(paste("Extract",sp_tmp[i]))
-    tmp<-unique(BIEN_taxonomy_species(sp_tmp[i])$scrubbed_family)
-  }
-
-
+Traits_Biome_Di_Ri$Biome<-factor(Traits_Biome_Di_Ri$Biome, 
+                                 levels=rev(c("Moist_Forest","Savannas","Tropical_Grasslands",
+                                              "Dry_Forest","Xeric_Woodlands","Mediterranean_Woodlands",
+                                              "Temperate_Grasslands","Temperate_Mixed","Coniferous_Forests",
+                                              "Taiga","Tundra")))
 
 # Calculate hypervolumes -------------------------------
 
-# Scalling variables
-Biome_traits_funDi$logseed_mass<-log(Biome_traits_funDi$seed_mass+1)
+# Transforming and Scaling variables
+Traits_Biome_Di_Ri$logseed_mass<-log(Traits_Biome_Di_Ri$Seed_mass+1)
+Traits_Biome_Di_Ri$logHeight<-log(Traits_Biome_Di_Ri$Height+1)
+Traits_Biome_Di_Ri$logWoodDensity<-log(Traits_Biome_Di_Ri$Wood_density+1)
 
 #Selecting and Scalling variables
-scale_fun<-function(x){scale(x, center=TRUE, scale=TRUE)}
-
-biome_name<-unique(Biome_traits_funDi$Biome)
-
-Hyper_input_growth<-
-  foreach(i=1:length(biome_name)) %do%
-  {
-    herbs<-Biome_traits_funDi %>% 
-      filter(Biome==biome_name[i] & GROWTHFORM_GEN=="herbaceous") %>% 
-      dplyr::select(logseed_mass, wood_density, height, leaf_area) %>% 
-      apply(2,scale_fun)
-    
-    woody<-Biome_traits_funDi %>% 
-      filter(Biome==biome_name[i] & GROWTHFORM_GEN=="woody") %>% 
-      dplyr::select(logseed_mass, wood_density, height, leaf_area) %>% 
-      apply(2,scale_fun)
-    
-    tmp<-list(woody=woody, herbs=herbs)
-    
-}
-
-names(Hyper_input_growth)<-biome_name
-
-
-moist_herbs<-hypervolume_box(Hyper_input$Moist_Forest$herbs, 
-                       name = "Herbs")
-
-moist_woody<-hypervolume_box(Hyper_input$Moist_Forest$woody, 
-                             name = "Woody")
-
-
-savanna_herbs<-hypervolume_box(Hyper_input$Savannas$herbs, 
-                             name = "Herbs")
-
-savanna_woody<-hypervolume_box(Hyper_input$Savannas$woody, 
-                             name = "Woody")
-
-
-plot(hypervolume_join(moist_herbs, moist_woody),num.points.max.random=6000,contour.lwd=1.5,colors=c(brewer.pal(n=2,"Set1"))
-     ,show.legend=FALSE)
-legend("bottomleft",legend = c("herbs","woody"),text.col=c(brewer.pal(n=3,"Set1")),bty="n",cex=1.1,text.font=2)
-
-
-plot(hypervolume_join(savanna_herbs, savanna_woody),num.points.max.random=6000,contour.lwd=1.5,colors=c(brewer.pal(n=2,"Set1"))
-     ,show.legend=FALSE)
-legend("bottomleft",legend = c("herbs","woody"),text.col=c(brewer.pal(n=3,"Set1")),bty="n",cex=1.1,text.font=2)
-
-
-savanna<-hypervolume_box(Hyper_input$Savannas, 
-                       name = "Savanna")
-
-
-##Divide between distinctic and redundant
-
-FunDi_tmp<-
-  foreach(i=1:length(biome_name), .combine = rbind) %do%{
-    Biome_traits_funDi %>% 
-      filter(Biome==biome_name[i]) %>% 
-      mutate(Dist_redun=ifelse(FunDi>=quantile(FunDi, 0.7),"Dist","Redu"))
-  }
-
-
-moist_Red<-
-  FunDi_tmp %>% 
-  filter(Biome=="Moist_Forest" & Dist_redun=="Redu") %>% 
-  dplyr::select(logseed_mass, wood_density, height, leaf_area) %>% 
-  apply(2,scale_fun) %>% 
-  hypervolume_box(name="Rest_moist")
-
-moist_Dist<-
-  FunDi_tmp %>% 
-  filter(Biome=="Moist_Forest" & Dist_redun=="Dist") %>% 
-  dplyr::select(logseed_mass, wood_density, height, leaf_area) %>% 
-  apply(2,scale_fun) %>% 
-  hypervolume_box(name="Dist_moist")
-
-plot(hypervolume_join(moist_Red, moist_Dist),num.points.max.random=6000,contour.lwd=1.5,colors=c(brewer.pal(n=2,"Set1"))
-     ,show.legend=FALSE)
-legend("bottomleft",legend = c("Red","Dist"),text.col=c(brewer.pal(n=3,"Set1")),bty="n",cex=1.1,text.font=2)
-
-
-## Using PCA
-require(ggfortify)
-
-FunDi_tmp$BiomeFu<-paste(FunDi_tmp$Biome, FunDi_tmp$Dist_redun)
-
-FunDi_tmp %>% 
-  filter(Biome=="Moist_Forest") %>% 
-  dplyr::select(logseed_mass, wood_density, height, leaf_area) %>% 
-  prcomp(scale=TRUE) %>% 
-  autoplot(data=FunDi_tmp[which(FunDi_tmp$Biome=="Moist_Forest"),], 
-           colour="Dist_redun", cex=2, frame=TRUE)
+Traits_Biome_Di_Ri<-
+Traits_Biome_Di_Ri %>% 
+  group_by(Biome) %>% 
+  mutate(Scaled_logWood_density=scale(logWoodDensity),
+         Scaled_Leaf_N=scale(Leaf_N),
+         Scaled_SLA=scale(SLA),
+         Scaled_Leaf_P=scale(Leaf_P),
+         Scaled_logSeed_mass=scale(logseed_mass),
+         Scaled_logHeight=scale(logHeight))
   
 
-FunDi_tmp %>% 
-  filter(Biome=="Savannas") %>% 
-  dplyr::select(logseed_mass, wood_density, height, leaf_area) %>% 
-  prcomp(scale=TRUE) %>% 
-  autoplot(data=FunDi_tmp[which(FunDi_tmp$Biome=="Savannas"),], 
-           colour="Dist_redun", cex=2, frame=TRUE)
+moist<-
+  Traits_Biome_Di_Ri %>% 
+  dplyr::filter(Biome=="Moist_Forest") %>% 
+  dplyr::filter(Ri<=0.5 & DiScale < 0.2) %>% 
+  select(contains("Scaled"))
+
+moist_hb<-hypervolume_box(moist[,-1],name = "Moist_Forest")
+
+Dry<-
+  Traits_Biome_Di_Ri %>% 
+  dplyr::filter(Biome=="Dry_Forest") %>% 
+  dplyr::filter(Ri<=0.5 & DiScale < 0.2) %>% 
+  select(contains("Scaled"))
+
+Dry_hb<-hypervolume_box(Dry[,-1],name = "Dry_Forest")
 
 
-tmp<- FunDi_tmp %>% 
-  filter(Biome=="Moist_Forest" | Biome=="Dry_Forest" ) %>% 
-  filter(Ri<0.5)
+plot(hypervolume_join(moist_hb, Dry_hb),contour.lwd=1.5,colors=c(brewer.pal(n=3,"Set1"))
+     ,show.legend=TRUE)
+
+
+sim1<-
+hypervolume_overlap_statistics(
   
-tmp %>% 
-  dplyr::select(logseed_mass, wood_density, height, leaf_area) %>% 
-  prcomp(scale=TRUE) %>% 
-  autoplot(data=tmp, 
-           colour="Biome", cex=2, frame=TRUE)
+  hypervolume_set(
+    moist_hb,Dry_hb,
+    check.memory = FALSE
+  )
+)
+
+## With the total values
+moist_tot<-
+  Traits_Biome_Di_Ri %>% 
+  dplyr::filter(Biome=="Moist_Forest") %>%
+  select(contains("Scaled"))
+
+moist_hb_tot<-hypervolume_box(moist_tot[,-1],name = "Moist_Forest")
+
+Dry_tot<-
+  Traits_Biome_Di_Ri %>% 
+  dplyr::filter(Biome=="Dry_Forest") %>% 
+  select(contains("Scaled"))
+
+Dry_hb_tot<-hypervolume_box(Dry_tot[,-1],name = "Dry_Forest")
+
+
+plot(hypervolume_join(moist_hb_tot, Dry_hb_tot),contour.lwd=1.5,colors=c(brewer.pal(n=3,"Set1"))
+     ,show.legend=TRUE)
+z_nolog <- hypervolume(data_twoboxes,bandwidth=estimate_bandwidth(data_twoboxes),quantile=0.5,reps=1000)
+
+sim2<-
+  hypervolume_overlap_statistics(
+    hypervolume_set(
+      moist_hb_tot,Dry_hb_tot,
+      check.memory = FALSE
+    )
+  )
+
+## Test pca
+
+traits_tot<-
+  Traits_Biome_Di_Ri %>% 
+  select(Leaf_N,Leaf_P,SLA,logseed_mass,logHeight,logWoodDensity)
+
+trait_pca <- prcomp(traits_tot[,-1],scale. = TRUE)
+summary(trait_pca)
+
+fviz_pca_var(trait_pca)
 
 
 
-FunDi_tmp %>% 
-  filter(Biome=="Taiga") %>% 
-  dplyr::select(logseed_mass, wood_density, height, leaf_area) %>% 
-  prcomp(scale=TRUE) %>% 
-  autoplot(data=FunDi_tmp[which(FunDi_tmp$Biome=="Taiga"),], 
-           colour="Dist_redun", cex=2, frame=TRUE)
 
+dat_sub<-
+  Traits_Biome_Di_Ri %>% 
+  dplyr::filter(Ri<=0.5 & DiScale < 0.2)
 
-## Distributions
-cols=wes_palette("Chevalier")[c(1,4)]
+traits_sub<-
+  dat_sub %>% 
+  select(Leaf_N,Leaf_P,SLA,logseed_mass,logHeight,logWoodDensity)
 
-FunDi_tmp %>% 
-  ggplot(aes(x=log(height), y=Biome, height=..density..)) +
-  geom_density_ridges(aes(x = log(height), fill = paste(Biome, Dist_redun)),
-                      scale=2,na.rm = TRUE,alpha = .8, color = "white")+
-  scale_fill_cyclical(values = cols,
-                      labels = c("Redundant", "Distinctive"),
-                      name = "Functional form", guide = "legend")+
-  theme_ridges(grid = FALSE)
+trait_pca_sub <- prcomp(traits_sub[,-1],scale. = TRUE)
+summary(trait_pca_sub)
 
+fviz_pca_var(trait_pca_sub)
 
+fviz_pca_var(trait_pca_sub, col.var="contrib")+
+  scale_color_gradient2(low="white", mid="blue",
+                        high="red", midpoint=10) +
+  theme_minimal()
 
+fviz_screeplot(trait_pca_sub, addlabels = TRUE, ylim = c(0, 50))
 
+iris.pca <- PCA(traits_sub[,-1], graph = FALSE)
+fviz_pca_ind(iris.pca, label="none", habillage=dat_sub$Biome,
+             addEllipses=TRUE, ellipse.level=0.95)
