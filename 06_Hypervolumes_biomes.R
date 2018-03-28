@@ -44,98 +44,189 @@ Traits_Biome_Di_Ri %>%
          Scaled_logHeight=scale(logHeight))
   
 
-moist<-
-  Traits_Biome_Di_Ri %>% 
-  dplyr::filter(Biome=="Moist_Forest") %>% 
-  dplyr::filter(Ri<=0.5 & DiScale < 0.2) %>% 
-  select(contains("Scaled"))
+biome_names<-unique(Traits_Biome_Di_Ri$Biome)
 
-moist_hb<-hypervolume_box(moist[,-1],name = "Moist_Forest")
+biomes_hypervolumes<-
+  foreach(i=seq_along(biome_names))%do%{
 
-Dry<-
-  Traits_Biome_Di_Ri %>% 
-  dplyr::filter(Biome=="Dry_Forest") %>% 
-  dplyr::filter(Ri<=0.5 & DiScale < 0.2) %>% 
-  select(contains("Scaled"))
+    biome_df<-
+      Traits_Biome_Di_Ri %>% 
+      dplyr::filter(Biome==biome_names[i]) %>% 
+      dplyr::filter(Ri<=0.5 & DiScale < 0.2) %>% 
+      select(contains("Scaled"))
+    
+    biome_hb<-hypervolume_box(biome_df[,-1],name = as.character(biome_names[i]))
+    
+    biome_hb
+  }
 
-Dry_hb<-hypervolume_box(Dry[,-1],name = "Dry_Forest")
-
-
-plot(hypervolume_join(moist_hb, Dry_hb),contour.lwd=1.5,colors=c(brewer.pal(n=3,"Set1"))
-     ,show.legend=TRUE)
+names(biomes_hypervolumes)<-biome_names
 
 
-sim1<-
-hypervolume_overlap_statistics(
-  
-  hypervolume_set(
-    moist_hb,Dry_hb,
-    check.memory = FALSE
-  )
+biomes_hypervolumes_total<-
+  foreach(i=seq_along(biome_names))%do%{
+    
+    biome_df<-
+      Traits_Biome_Di_Ri %>% 
+      dplyr::filter(Biome==biome_names[i]) %>%
+      select(contains("Scaled"))
+    
+    biome_hb<-hypervolume_box(biome_df[,-1],name = as.character(biome_names[i]))
+    
+    biome_hb
+  }
+
+names(biomes_hypervolumes_total)<-biome_names
+
+
+## Plot some hypervolumes
+plot(
+  hypervolume_join(
+    biomes_hypervolumes$Moist_Forest, 
+    biomes_hypervolumes$Coniferous_Forests
+  ),
+  contour.lwd=1.5,
+  colors=c(brewer.pal(n=3,"Set1")),
+  show.legend=TRUE
 )
 
-## With the total values
-moist_tot<-
-  Traits_Biome_Di_Ri %>% 
-  dplyr::filter(Biome=="Moist_Forest") %>%
-  select(contains("Scaled"))
 
-moist_hb_tot<-hypervolume_box(moist_tot[,-1],name = "Moist_Forest")
+choices<-choose(length(biome_names),2) #x choose 2 possible pairs
+combs<-combn(length(biome_names),2) # create those pairs
 
-Dry_tot<-
-  Traits_Biome_Di_Ri %>% 
-  dplyr::filter(Biome=="Dry_Forest") %>% 
-  select(contains("Scaled"))
+similarity<-NULL
+A<-NULL
+B<-NULL
 
-Dry_hb_tot<-hypervolume_box(Dry_tot[,-1],name = "Dry_Forest")
-
-
-plot(hypervolume_join(moist_hb_tot, Dry_hb_tot),contour.lwd=1.5,colors=c(brewer.pal(n=3,"Set1"))
-     ,show.legend=TRUE)
-z_nolog <- hypervolume(data_twoboxes,bandwidth=estimate_bandwidth(data_twoboxes),quantile=0.5,reps=1000)
-
-sim2<-
-  hypervolume_overlap_statistics(
-    hypervolume_set(
-      moist_hb_tot,Dry_hb_tot,
-      check.memory = FALSE
+for(i in 1:choices) {
+  nums<-combs[,i]
+  
+  sim<-
+    hypervolume_overlap_statistics(
+      hypervolume_set(
+        biomes_hypervolumes[[nums[1]]], 
+        biomes_hypervolumes[[nums[2]]],
+        check.memory = FALSE
+      )
     )
-  )
+  
+  similarity<-rbind(similarity,sim)
+  
+  A[i]<-nums[1]
+  B[i]<-nums[2]
+}
 
-## Test pca
+###
+Similarity_df<-data.frame(Biome1=biome_names[A],Biome2=biome_names[B])
+Similarity_df<-cbind(Similarity_df,similarity)
 
-traits_tot<-
-  Traits_Biome_Di_Ri %>% 
-  select(Leaf_N,Leaf_P,SLA,logseed_mass,logHeight,logWoodDensity)
+tmp<-matrix(data = NA, nrow = 11, ncol = 11, byrow = FALSE,
+            dimnames = NULL)
 
-trait_pca <- prcomp(traits_tot[,-1],scale. = TRUE)
-summary(trait_pca)
+rownames(tmp)<-c(as.character(Similarity_df$Biome1[1]),as.character(unique(Similarity_df$Biome2)))
+colnames(tmp)<-c(as.character(unique(Similarity_df$Biome1)),as.character(Similarity_df$Biome2[10]))
 
-fviz_pca_var(trait_pca)
+diag(tmp)<-1
+
+tmp[lower.tri(tmp, diag = FALSE)]<-Similarity_df$sorensen
+
+fit <-hclust(as.dist(1-tmp))
+plot(fit)
+
+## With the total values
+
+similarity_hypervol<-function(list_hyper){
+
+  choices<-choose(length(biome_names),2) #x choose 2 possible pairs
+  combs<-combn(length(biome_names),2) # create those pairs
+  
+  similarity_total<-NULL
+  A<-NULL
+  B<-NULL
+  
+  for(i in 1:choices) {
+    nums<-combs[,i]
+    
+    sim<-
+      hypervolume_overlap_statistics(
+        hypervolume_set(
+          biomes_hypervolumes_total[[nums[1]]], 
+          biomes_hypervolumes_total[[nums[2]]],
+          check.memory = FALSE
+        )
+      )
+    
+    similarity_total<-rbind(similarity_total,sim)
+    
+    A[i]<-nums[1]
+    B[i]<-nums[2]
+  }
+
+    return(similarity_total)  
+}
+
+###
+
+Create_dist_matrix<-function(Similarity_df, index="sorensen"){
+  
+  tmp<-matrix(data = NA, nrow = 11, ncol = 11, byrow = FALSE,
+              dimnames = NULL)
+  
+  rownames(tmp)<-c(as.character(Similarity_df$Biome1[1]),as.character(unique(Similarity_df$Biome2)))
+  colnames(tmp)<-c(as.character(unique(Similarity_df$Biome1)),as.character(Similarity_df$Biome2[10]))
+  
+  diag(tmp)<-1
+  tmp[lower.tri(tmp, diag = FALSE)]<-Similarity_df[[index]]
+  
+  return(tmp)
+
+}
+
+## Biome cluster using total species
+Sim_total<-data.frame(Biome1=biome_names[A],Biome2=biome_names[B])
+Sim_total<-cbind(Sim_total,similarity_total)
+
+dist_total<-Create_dist_matrix(Sim_total)
+
+fit_total <-hclust(as.dist(1-dist_total))
+labels(fit_total)<-c("Moist","Trop_grass","Dry","Savannas","Taiga",
+               "Tundra","Xeric_wood","Mediterranean","Coniferous","Temp_grass","Temp_mixed")
+
+dend_total<-
+  fit_total %>% 
+  as.dendrogram() %>% 
+  color_branches(1,col=wes_palette("Cavalcanti")[1]) %>% 
+  set("branches_lwd", 4)
+
+#dir.create("./figs/hypervolumes_clusters")
+
+pdf("./figs/hypervolumes_clusters/Total_Sorensen.pdf",height = 9.4, width = 9.1)
+circlize_dendrogram(dend_total,dend_track_height = 0.7,labels_track_height = 0.2)
+dev.off()
+
+## Biome cluster using Redundant and widespread species----
+
+Sim_red<-data.frame(Biome1=biome_names[A],Biome2=biome_names[B])
+Sim_red<-cbind(Sim_red,similarity)
+
+dist_red<-Create_dist_matrix(Sim_red)
+
+fit_red <-hclust(as.dist(1-dist_red))
+labels(fit_red)<-c("Moist","Trop_grass","Dry","Savannas","Taiga",
+                   "Tundra","Xeric_wood","Coniferous","Temp_Mixed",
+                   "Temp_grass","Mediterranean")
 
 
+dend_red<-
+  fit_red %>% 
+  as.dendrogram() %>% 
+  color_branches(1,col=wes_palette("Cavalcanti")[3]) %>% 
+  set("branches_lwd", 4)
 
 
-dat_sub<-
-  Traits_Biome_Di_Ri %>% 
-  dplyr::filter(Ri<=0.5 & DiScale < 0.2)
+#dir.create("./figs/hypervolumes_clusters")
 
-traits_sub<-
-  dat_sub %>% 
-  select(Leaf_N,Leaf_P,SLA,logseed_mass,logHeight,logWoodDensity)
-
-trait_pca_sub <- prcomp(traits_sub[,-1],scale. = TRUE)
-summary(trait_pca_sub)
-
-fviz_pca_var(trait_pca_sub)
-
-fviz_pca_var(trait_pca_sub, col.var="contrib")+
-  scale_color_gradient2(low="white", mid="blue",
-                        high="red", midpoint=10) +
-  theme_minimal()
-
-fviz_screeplot(trait_pca_sub, addlabels = TRUE, ylim = c(0, 50))
-
-iris.pca <- PCA(traits_sub[,-1], graph = FALSE)
-fviz_pca_ind(iris.pca, label="none", habillage=dat_sub$Biome,
-             addEllipses=TRUE, ellipse.level=0.95)
+pdf("./figs/hypervolumes_clusters/Redundant_Sorensen.pdf", height = 9.4, width = 9.1)
+par(mar=c(0, 0, 0, 0))
+circlize_dendrogram(dend_red,dend_track_height = 0.7,labels_track_height = 0.2)
+dev.off()
