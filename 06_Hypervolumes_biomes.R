@@ -92,37 +92,8 @@ saveRDS(Total_hypervol, "./outputs/Total_hypervolumes.rds")
 ## Plot hypervolumes per category
 plot(
   hypervolume_join(
-    Redun_Wides_hypervol$Moist_Forest, 
-    Redun_Wides_hypervol$Tropical_Grasslands
-  ),
-  contour.lwd=1.5,
-  colors=c(brewer.pal(n=3,"Set1")),
-  show.legend=TRUE
-)
-
-
-biome_names<-unique(Traits_Biome_Di_Ri$Biome)[c(1,11)]
-
-biomes_hypervolumes_tmp<-
-  foreach(i=seq_along(biome_names))%do%{
-    
-    biome_df<-
-      Traits_Biome_Di_Ri %>% 
-      dplyr::filter(Biome==biome_names[i]) %>% 
-      dplyr::filter(Ri<=0.5 & DiScale < 0.2) %>% 
-      select(contains("Scaled"))
-    
-    biome_hb<-hypervolume_gaussian(biome_df[,-1],name = as.character(biome_names[i]))
-    
-    biome_hb
-  }
-
-names(biomes_hypervolumes_tmp)<-biome_names
-
-plot(
-  hypervolume_join(
-    biomes_hypervolumes_tmp$Moist_Forest, 
-    biomes_hypervolumes_tmp$Tundra
+    Total_hypervol$Moist_Forest, 
+    Total_hypervol$Dry_Forest
   ),
   contour.lwd=1.5,
   colors=c(brewer.pal(n=3,"Set1")),
@@ -146,8 +117,8 @@ for(i in 1:choices) {
   sim<-
     hypervolume_overlap_statistics(
       hypervolume_set(
-        biomes_hypervolumes[[nums[1]]], 
-        biomes_hypervolumes[[nums[2]]],
+        Total_hypervol[[nums[1]]], 
+        Total_hypervol[[nums[2]]],
         check.memory = FALSE
       )
     )
