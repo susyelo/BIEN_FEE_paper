@@ -44,39 +44,40 @@ Traits_Biome_Di_Ri %>%
          Scaled_logHeight=scale(logHeight))
   
 
+
+
+## Calculate biome's hypervolumes
+
+Biomes_hypervolume<-function(biome_dataframe, biome_names){
+  
+  biome_df<-
+    biome_dataframe %>% 
+    dplyr::filter(Biome==biome_names[i]) %>% 
+    dplyr::select(contains("Scaled"))
+  
+  hyper_list<-foreach(i=seq_along(biome_names))%do%{
+    
+    biome_hb<-hypervolume_gaussian(biome_df[,-1],name = as.character(biome_names[i]))
+    
+    biome_hb
+  }
+  
+  names(hyper_list)<-biome_names
+  hyper_list
+}
+
+### Redundant and widespread species hypervolumes
 biome_names<-unique(Traits_Biome_Di_Ri$Biome)
 
-biomes_hypervolumes<-
-  foreach(i=seq_along(biome_names))%do%{
+biome_ReduntWides<-
+  Traits_Biome_Di_Ri %>% 
+  dplyr::filter(Ri<=0.5 & DiScale < 0.2)
 
-    biome_df<-
-      Traits_Biome_Di_Ri %>% 
-      dplyr::filter(Biome==biome_names[i]) %>% 
-      dplyr::filter(Ri<=0.5 & DiScale < 0.2) %>% 
-      select(contains("Scaled"))
-    
-    biome_hb<-hypervolume_box(biome_df[,-1],name = as.character(biome_names[i]))
-    
-    biome_hb
-  }
-
-names(biomes_hypervolumes)<-biome_names
+Redun_Wides_hypervol<-Biomes_hypervolume(biome_ReduntWides,biome_names)
 
 
-biomes_hypervolumes_total<-
-  foreach(i=seq_along(biome_names))%do%{
-    
-    biome_df<-
-      Traits_Biome_Di_Ri %>% 
-      dplyr::filter(Biome==biome_names[i]) %>%
-      select(contains("Scaled"))
-    
-    biome_hb<-hypervolume_box(biome_df[,-1],name = as.character(biome_names[i]))
-    
-    biome_hb
-  }
-
-names(biomes_hypervolumes_total)<-biome_names
+## Total hypervolumes
+Total_hypervol<-Biomes_hypervolume(Traits_Biome_Di_Ri,biome_names)
 
 
 ## Plot some hypervolumes
