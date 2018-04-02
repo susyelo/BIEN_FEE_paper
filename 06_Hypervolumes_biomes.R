@@ -50,12 +50,12 @@ Traits_Biome_Di_Ri %>%
 
 Biomes_hypervolume<-function(biome_dataframe, biome_names){
   
-  biome_df<-
-    biome_dataframe %>% 
-    dplyr::filter(Biome==biome_names[i]) %>% 
-    dplyr::select(contains("Scaled"))
-  
   hyper_list<-foreach(i=seq_along(biome_names))%do%{
+    
+    biome_df<-
+      biome_dataframe %>% 
+      dplyr::filter(Biome==biome_names[i]) %>% 
+      dplyr::select(contains("Scaled"))
     
     biome_hb<-hypervolume_gaussian(biome_df[,-1],name = as.character(biome_names[i]))
     
@@ -66,7 +66,16 @@ Biomes_hypervolume<-function(biome_dataframe, biome_names){
   hyper_list
 }
 
+
 ### Redundant and widespread species hypervolumes
+
+## Ordering traits
+Traits_Biome_Di_Ri<-
+  Traits_Biome_Di_Ri %>% 
+  select(species:logWoodDensity,
+         Scaled_logHeight,Scaled_logWood_density,Scaled_logSeed_mass,
+         Scaled_SLA,Scaled_Leaf_N,Scaled_Leaf_P)
+
 biome_names<-unique(Traits_Biome_Di_Ri$Biome)
 
 biome_ReduntWides<-
@@ -74,23 +83,55 @@ biome_ReduntWides<-
   dplyr::filter(Ri<=0.5 & DiScale < 0.2)
 
 Redun_Wides_hypervol<-Biomes_hypervolume(biome_ReduntWides,biome_names)
-
+saveRDS(Redun_Wides_hypervol, "./outputs/ReduntWides_hypervolumes.rds")
 
 ## Total hypervolumes
 Total_hypervol<-Biomes_hypervolume(Traits_Biome_Di_Ri,biome_names)
+saveRDS(Total_hypervol, "./outputs/Total_hypervolumes.rds")
 
-
-## Plot some hypervolumes
+## Plot hypervolumes per category
 plot(
   hypervolume_join(
-    biomes_hypervolumes$Moist_Forest, 
-    biomes_hypervolumes$Coniferous_Forests
+    Redun_Wides_hypervol$Moist_Forest, 
+    Redun_Wides_hypervol$Tropical_Grasslands
   ),
   contour.lwd=1.5,
   colors=c(brewer.pal(n=3,"Set1")),
   show.legend=TRUE
 )
 
+
+biome_names<-unique(Traits_Biome_Di_Ri$Biome)[c(1,11)]
+
+biomes_hypervolumes_tmp<-
+  foreach(i=seq_along(biome_names))%do%{
+    
+    biome_df<-
+      Traits_Biome_Di_Ri %>% 
+      dplyr::filter(Biome==biome_names[i]) %>% 
+      dplyr::filter(Ri<=0.5 & DiScale < 0.2) %>% 
+      select(contains("Scaled"))
+    
+    biome_hb<-hypervolume_gaussian(biome_df[,-1],name = as.character(biome_names[i]))
+    
+    biome_hb
+  }
+
+names(biomes_hypervolumes_tmp)<-biome_names
+
+plot(
+  hypervolume_join(
+    biomes_hypervolumes_tmp$Moist_Forest, 
+    biomes_hypervolumes_tmp$Tundra
+  ),
+  contour.lwd=1.5,
+  colors=c(brewer.pal(n=3,"Set1")),
+  show.legend=TRUE
+)
+
+
+
+## Calculate Hypervolume similarity using Sorense's index
 
 choices<-choose(length(biome_names),2) #x choose 2 possible pairs
 combs<-combn(length(biome_names),2) # create those pairs
