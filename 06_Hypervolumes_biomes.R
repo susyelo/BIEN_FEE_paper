@@ -90,7 +90,7 @@ Total_hypervol<-Biomes_hypervolume(Traits_Biome_Di_Ri,biome_names)
 saveRDS(Total_hypervol, "./outputs/Total_hypervolumes.rds")
 
 ## Plot hypervolumes per category
-pdf("./figs/hypervolumes_clusters/Total_Moist_Dry_Savanna.pdf")
+png("./figs/hypervolumes_clusters/Total_Moist_Dry_Savanna.png",width = 600, height = 600)
 plot(
   hypervolume_join(
     Total_hypervol$Moist_Forest, 
@@ -103,7 +103,7 @@ plot(
 )
 dev.off()
 
-pdf("./figs/hypervolumes_clusters/Total_Moist_Temperated_Mixed_Conifers.pdf")
+png("./figs/hypervolumes_clusters/Total_Moist_Temperated_Mixed_Conifers.png",width = 600, height = 600)
 plot(
   hypervolume_join(
     Total_hypervol$Moist_Forest, 
@@ -118,7 +118,7 @@ dev.off()
 
 
 
-pdf("./figs/hypervolumes_clusters/RedWides_Moist_Dry_Savanna.pdf")
+png("./figs/hypervolumes_clusters/RedWides_Moist_Dry_Savanna.png",width = 600, height = 600)
 plot(
   hypervolume_join(
     Redun_Wides_hypervol$Moist_Forest, 
@@ -131,7 +131,7 @@ plot(
 )
 dev.off()
 
-pdf("./figs/hypervolumes_clusters/RedWides_Moist_Temperated_Mixed_Conifers.pdf")
+png("./figs/hypervolumes_clusters/RedWides_Moist_Temperated_Mixed_Conifers.png",width = 600, height = 600)
 plot(
   hypervolume_join(
     Redun_Wides_hypervol$Moist_Forest, 
