@@ -20,8 +20,8 @@ Seed_phylo<-read.tree("./data/base/big_seed_plant_trees_v0.1/ALLMB.tre")
 # Data filter and selection ----------------------------------------------------------
 # Filter species that have range maps information
 Trait_BIEN<-
-Trait_BIEN_df %>% 
-  filter(scrubbed_species_binomial%in%unique(spPresence$Species)) %>% 
+Trait_BIEN_df %>%
+  filter(scrubbed_species_binomial%in%unique(spPresence$Species)) %>%
   dplyr::select(scrubbed_species_binomial, Wood_density,Leaf_N,SLA,Seed_mass,Height,Leaf_P)
 
 rownames(Trait_BIEN)<-Trait_BIEN$scrubbed_species_binomial
@@ -37,7 +37,7 @@ phylo_traits$data$species<-rownames(phylo_traits$data)
 
 # Create species column and move it to the first position
 phylo_traits$data<-
-  phylo_traits$data %>% 
+  phylo_traits$data %>%
   select(species, everything())
 
 # Fill trait data using phylo info
@@ -57,8 +57,8 @@ pca$li[which(pca$li$Axis1>5),]
 traits_completed$species<-rownames(traits_completed)
 
 traits_completed<-
-  traits_completed %>% 
-  filter(species!="Cocos_nucifera") %>% 
+  traits_completed %>%
+  filter(species!="Cocos_nucifera") %>%
   droplevels()
 
 
@@ -74,7 +74,7 @@ sp_to_drop<-rownames(pca$li[which(pca$li$Axis2<(-5) & pca$li$Axis1>4),])
 write.csv(sp_to_drop, "./outputs/sp_outliers.csv")
 
 traits_completed<-
-  traits_completed %>% 
+  traits_completed %>%
   filter(species%in%sp_to_drop==FALSE)
 rownames(traits_completed)<-traits_completed$species
 
