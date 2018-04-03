@@ -90,16 +90,59 @@ Total_hypervol<-Biomes_hypervolume(Traits_Biome_Di_Ri,biome_names)
 saveRDS(Total_hypervol, "./outputs/Total_hypervolumes.rds")
 
 ## Plot hypervolumes per category
+pdf("./figs/hypervolumes_clusters/Total_Moist_Dry_Savanna.pdf")
 plot(
   hypervolume_join(
     Total_hypervol$Moist_Forest, 
-    Total_hypervol$Dry_Forest
+    Total_hypervol$Dry_Forest,
+    Total_hypervol$Savannas
   ),
   contour.lwd=1.5,
   colors=c(brewer.pal(n=3,"Set1")),
   show.legend=TRUE
 )
+dev.off()
 
+pdf("./figs/hypervolumes_clusters/Total_Moist_Temperated_Mixed_Conifers.pdf")
+plot(
+  hypervolume_join(
+    Total_hypervol$Moist_Forest, 
+    Total_hypervol$Temperate_Mixed,
+    Total_hypervol$Coniferous_Forests
+  ),
+  contour.lwd=1.5,
+  colors=c(brewer.pal(n=3,"Set1")),
+  show.legend=TRUE
+)
+dev.off()
+
+
+
+pdf("./figs/hypervolumes_clusters/RedWides_Moist_Dry_Savanna.pdf")
+plot(
+  hypervolume_join(
+    Redun_Wides_hypervol$Moist_Forest, 
+    Redun_Wides_hypervol$Dry_Forest,
+    Redun_Wides_hypervol$Savannas
+  ),
+  contour.lwd=1.5,
+  colors=c(brewer.pal(n=3,"Set1")),
+  show.legend=TRUE
+)
+dev.off()
+
+pdf("./figs/hypervolumes_clusters/RedWides_Moist_Temperated_Mixed_Conifers.pdf")
+plot(
+  hypervolume_join(
+    Redun_Wides_hypervol$Moist_Forest, 
+    Redun_Wides_hypervol$Temperate_Mixed,
+    Redun_Wides_hypervol$Coniferous_Forests
+  ),
+  contour.lwd=1.5,
+  colors=c(brewer.pal(n=3,"Set1")),
+  show.legend=TRUE
+)
+dev.off()
 
 
 ## Calculate Hypervolume similarity using Sorense's index
