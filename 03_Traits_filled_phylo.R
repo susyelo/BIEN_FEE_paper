@@ -4,6 +4,7 @@ library(tidyverse)
 library(picante)
 library(Rphylopars)
 library(ade4)
+library(visdat)
 
 # Data --------------------------------------------------------------------
 # 1. Traits data
@@ -29,6 +30,15 @@ rownames(Trait_BIEN)<-Trait_BIEN$scrubbed_species_binomial
 # Data exploration --------------------------------------------------------
 # Number of species in the phylogeny that have some trait information
 length(which(unique(Trait_BIEN$scrubbed_species_binomial)%in%Seed_phylo$tip.label))
+
+## Visualise the dataframe to understand the main trait gaps 
+pdf("./supp_figs/Missing_trait_data_cluster.pdf", width = 8)
+vis_miss(Trait_BIEN[,-1],cluster = TRUE, sort_miss = TRUE)
+dev.off()
+
+pdf("./supp_figs/Missing_trait_data.pdf", width = 8)
+vis_miss(Trait_BIEN[,-1], sort_miss = TRUE)
+dev.off()
 
 
 # Trait and phylo match ----------------------------------------------------------
