@@ -6,6 +6,10 @@ library(Rphylopars)
 library(ade4)
 library(visdat)
 
+
+# Functions ---------------------------------------------------------------
+source("./functions/tip_accuracy.R")
+
 # Data --------------------------------------------------------------------
 # 1. Traits data
 Trait_BIEN_df<-read.csv("./data/processed/BIEN_trait_GrowthForm.csv", row.names=1)
@@ -49,6 +53,16 @@ phylo_traits$data$species<-rownames(phylo_traits$data)
 phylo_traits$data<-
   phylo_traits$data %>%
   select(species, everything())
+
+
+## Checking accurancy of trait imputation
+# Taken from http://www.ecography.org/appendix/ecog-03480
+
+woody_dens<-phylo_traits$data$Wood_density
+names(woody_dens)<-phylo_traits$data$species
+
+accu_woody<-tip_accuracy(Tree = phylo_traits$phy, Trait = woody_dens, 
+                   method = "Rphylopars", runs = 1)
 
 # Fill trait data using phylo info
 traits_inPhylo<- phylopars(trait_data = phylo_traits$data,tree = phylo_traits$phy,
