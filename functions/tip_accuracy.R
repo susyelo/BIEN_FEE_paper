@@ -155,10 +155,9 @@ tip_accuracy  <- function(Tree, Trait, runs = 500, threshold = 0.75, range.lambd
         {R_v_tip_PEM[j] <- 1-((sum((x[j]-Res_PEM[j])^2))/(var(x)))}
       }
       Store_tip_PEM <- data.frame(Store_tip_PEM,R_v_tip_PEM)
-      Store_tip_PEM <- Store_tip_PEM[,-1]
-      row.names(Store_tip_PEM)<-names(Trait)
     }
-   
+    Store_tip_PEM <- Store_tip_PEM[,-1]
+    row.names(Store_tip_PEM)<-names(Trait)
   }
   
   P_Umbral<-vector(mode="numeric", length=length(Tree$tip.label))
