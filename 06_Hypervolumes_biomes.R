@@ -47,7 +47,6 @@ Traits_Biome_Di_Ri %>%
 
 
 ## Calculate biome's hypervolumes
-
 Biomes_hypervolume<-function(biome_dataframe, biome_names){
   
   hyper_list<-foreach(i=seq_along(biome_names))%do%{
@@ -67,7 +66,9 @@ Biomes_hypervolume<-function(biome_dataframe, biome_names){
 }
 
 
-### Redundant and widespread species hypervolumes
+
+
+# Redundant and widespread species hypervolumes ---------------------------
 
 ## Ordering traits
 Traits_Biome_Di_Ri<-
@@ -145,7 +146,7 @@ plot(
 dev.off()
 
 
-## Calculate Hypervolume similarity using Sorense's index
+## Calculate Hypervolume similarity using Sorense's index -----
 
 choices<-choose(length(biome_names),2) #x choose 2 possible pairs
 combs<-combn(length(biome_names),2) # create those pairs
@@ -286,3 +287,26 @@ pdf("./figs/hypervolumes_clusters/Redundant_Sorensen.pdf", height = 9.4, width =
 par(mar=c(0, 0, 0, 0))
 circlize_dendrogram(dend_red,dend_track_height = 0.7,labels_track_height = 0.2)
 dev.off()
+
+
+# Hypervolumes for climatic categories ------------------------------------
+tropical<-c("Moist_Forest","Dry_Forest","Dry_Forest","Tropical_Grasslands","Savannas")
+temperate<-c("Temperate_Grasslands","Coniferous_Forests","Temperate_Mixed","Mediterranean_Woodlands")
+cold<-c("Taiga","Tundra")
+
+Traits_Biome_Di_Ri$ClimBiomes<-ifelse(Traits_Biome_Di_Ri$Biome%in%tropical,"Tropical",NA)
+Traits_Biome_Di_Ri$ClimBiomes<-ifelse(Traits_Biome_Di_Ri$Biome%in%temperate,"Temperate",
+                                      Traits_Biome_Di_Ri$ClimBiomes)
+
+Traits_Biome_Di_Ri$ClimBiomes<-ifelse(Traits_Biome_Di_Ri$Biome%in%cold,"Cold",
+                                      Traits_Biome_Di_Ri$ClimBiomes)
+
+Traits_Biome_Di_Ri$ClimBiomes[which(Traits_Biome_Di_Ri$Biome=="Xeric_Woodlands")]<-"Xeric"
+
+
+## The function needs a variable called "Biome" 
+## so I created a temporal dataframe with the Biome variables using the climate classification
+Traits_Biome_Di_Ri_tmp<-Traits_Biome_Di_Ri
+Traits_Biome_Di_Ri_tmp$Biome<-Traits_Biome_Di_Ri_tmp$ClimBiomes
+
+Climatic_hypervol<-Biomes_hypervolume(Traits_Biome_Di_Ri_tmp,unique(Traits_Biome_Di_Ri$ClimBiomes))
