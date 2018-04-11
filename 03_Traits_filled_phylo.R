@@ -35,19 +35,36 @@ rownames(Trait_BIEN)<-Trait_BIEN$scrubbed_species_binomial
 # Number of species in the phylogeny that have some trait information
 length(which(unique(Trait_BIEN$scrubbed_species_binomial)%in%Seed_phylo$tip.label))
 
-## Visualise the dataframe to understand the main trait gaps 
-pdf("./supp_figs/Missing_trait_data_cluster.pdf", width = 8)
-vis_miss(Trait_BIEN[,-1],cluster = TRUE, sort_miss = TRUE)
-dev.off()
-
-pdf("./supp_figs/Missing_trait_data.pdf", width = 8)
-vis_miss(Trait_BIEN[,-1], sort_miss = TRUE)
-dev.off()
-
-
 # Trait and phylo match ----------------------------------------------------------
 phylo_traits<- match.phylo.data(Seed_phylo, Trait_BIEN[,-1])
 phylo_traits$data$species<-rownames(phylo_traits$data)
+
+## Visualise the dataframe to understand the main trait gaps 
+pdf("./supp_figs/Missing_trait_data_cluster.pdf", width = 8)
+vis_miss(phylo_traits$data[,-7],cluster = TRUE, sort_miss = TRUE)
+dev.off()
+
+pdf("./supp_figs/Missing_trait_data.pdf", width = 8)
+vis_miss(phylo_traits$data[,-7], sort_miss = TRUE)
+dev.off()
+
+new_phylo<-ladderize(phylo_traits$phy)
+
+indx<-match(new_phylo$tip.label,phylo_traits$data$species)
+new_data<-phylo_traits$data[indx,]
+
+tree_tmp<-ggtree(new_phylo, branch.length="none", colour="orange")
+  
+png("./supp_figs/Seed_phylo_speciesWithtraits.png")
+tree_tmp
+dev.off()
+
+png("./supp_figs/Missing_trait_data_phylo.png", width = 600, height = 600)
+vis_miss(new_data[,-7], sort_miss = TRUE)
+dev.off()
+
+
+
 
 # Create species column and move it to the first position
 phylo_traits$data<-
@@ -65,7 +82,7 @@ accu_woody<-tip_accuracy(Tree = phylo_traits$phy, Trait = woody_dens,
                    method = "Rphylopars", runs = 1)
 
 # Fill trait data using phylo info
-traits_inPhylo<- phylopars(trait_data = phylo_traits$data,tree = phylo_traits$phy,
+traits_inPhylo2<- phylopars(trait_data = phylo_traits$data,tree = phylo_traits$phy,
                      pheno_error = F, phylo_correlated = F, pheno_correlated = F)
 
 traits_completed<-as.data.frame(traits_inPhylo$anc_recon[1:length(phylo_traits$phy$tip.label),])
