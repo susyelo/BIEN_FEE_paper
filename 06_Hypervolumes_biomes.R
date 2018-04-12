@@ -207,8 +207,8 @@ similarity_hypervol<-function(list_hyper){
     sim<-
       hypervolume_overlap_statistics(
         hypervolume_set(
-          biomes_hypervolumes_total[[nums[1]]], 
-          biomes_hypervolumes_total[[nums[2]]],
+          list_hyper[[nums[1]]], 
+          list_hyper[[nums[2]]],
           check.memory = FALSE
         )
       )
@@ -226,7 +226,7 @@ similarity_hypervol<-function(list_hyper){
 
 Create_dist_matrix<-function(Similarity_df, index="sorensen"){
   
-  tmp<-matrix(data = NA, nrow = 11, ncol = 11, byrow = FALSE,
+  tmp<-matrix(data = NA, nrow = length(Similarity_df$Biome1), ncol = length(Similarity_df$Biome2), byrow = FALSE,
               dimnames = NULL)
   
   rownames(tmp)<-c(as.character(Similarity_df$Biome1[1]),as.character(unique(Similarity_df$Biome2)))
@@ -262,8 +262,10 @@ circlize_dendrogram(dend_total,dend_track_height = 0.7,labels_track_height = 0.2
 dev.off()
 
 ## Biome cluster using Redundant and widespread species----
+choices<-choose(length(biome_names),2) #x choose 2 possible pairs
+combs<-combn(length(biome_names),2) 
 
-Sim_red<-data.frame(Biome1=biome_names[A],Biome2=biome_names[B])
+Sim_red<-data.frame(Biome1=biome_names[combs[1,]],Biome2=biome_names[combs[2,]])
 Sim_red<-cbind(Sim_red,similarity)
 
 dist_red<-Create_dist_matrix(Sim_red)
@@ -310,3 +312,19 @@ Traits_Biome_Di_Ri_tmp<-Traits_Biome_Di_Ri
 Traits_Biome_Di_Ri_tmp$Biome<-Traits_Biome_Di_Ri_tmp$ClimBiomes
 
 Climatic_hypervol<-Biomes_hypervolume(Traits_Biome_Di_Ri_tmp,unique(Traits_Biome_Di_Ri$ClimBiomes))
+
+
+
+png("./figs/hypervolumes_clusters/Climatic_hypervolumes_total.png",width = 600, height = 600)
+plot(
+  hypervolume_join(
+    Climatic_hypervol$Tropical, 
+    Climatic_hypervol$Xeric,
+    Climatic_hypervol$Temperate,  
+    Climatic_hypervol$Cold
+  ),
+  contour.lwd=1.5,
+  colors=c(brewer.pal(n=4,"Set1")),
+  show.legend=TRUE
+)
+dev.off()
