@@ -5,9 +5,57 @@ library(RColorBrewer)
 library(foreach)
 library(BIEN)
 library(factoextra)
+library(dendextend)
+library(wesanderson)
 
 # Functions ---------------------------------------------------------------
 source("./functions/BIEN2.0_RangeMaps_functions.R")
+
+similarity_hypervol<-function(list_hyper){
+  
+  choices<-choose(length(names(list_hyper)),2) #x choose 2 possible pairs
+  combs<-combn(length(names(list_hyper)),2) # create those pairs
+  
+  similarity_total<-NULL
+  A<-NULL
+  B<-NULL
+  
+  for(i in 1:choices) {
+    nums<-combs[,i]
+    
+    sim<-
+      hypervolume_overlap_statistics(
+        hypervolume_set(
+          list_hyper[[nums[1]]], 
+          list_hyper[[nums[2]]],
+          check.memory = FALSE
+        )
+      )
+    
+    similarity_total<-rbind(similarity_total,sim)
+    
+    A[i]<-nums[1]
+    B[i]<-nums[2]
+    
+    
+  }
+  
+  Similarity_df<-data.frame(Biome1=names(list_hyper)[A],Biome2=names(list_hyper)[B])
+  Similarity_df<-cbind(Similarity_df,similarity_total)
+  
+  tmp<-matrix(data = NA, nrow = n_distinct(list_hyper), ncol = n_distinct(list_hyper), byrow = FALSE,
+              dimnames = NULL)
+  
+  rownames(tmp)<-names(list_hyper)
+  colnames(tmp)<-names(list_hyper)
+  
+  diag(tmp)<-1
+  
+  tmp[lower.tri(tmp, diag = FALSE)]<-Similarity_df$sorensen
+  
+  return(tmp)  
+}
+
 
 # data --------------------------------------------------------------------
 # 1. Trait data frame
@@ -46,7 +94,7 @@ Traits_Biome_Di_Ri %>%
 
 
 
-## Calculate biome's hypervolumes
+## Calculate hypervolumes for each Biome function
 Biomes_hypervolume<-function(biome_dataframe, biome_names){
   
   hyper_list<-foreach(i=seq_along(biome_names))%do%{
@@ -64,8 +112,6 @@ Biomes_hypervolume<-function(biome_dataframe, biome_names){
   names(hyper_list)<-biome_names
   hyper_list
 }
-
-
 
 
 # Redundant and widespread species hypervolumes ---------------------------
@@ -117,8 +163,6 @@ plot(
 )
 dev.off()
 
-
-
 png("./figs/hypervolumes_clusters/RedWides_Moist_Dry_Savanna.png",width = 600, height = 600)
 plot(
   hypervolume_join(
@@ -147,105 +191,22 @@ dev.off()
 
 
 ## Calculate Hypervolume similarity using Sorense's index -----
+## With Redundant species
+redun_Sim<-similarity_hypervol(Redun_Wides_hypervol)
+fit_red <-hclust(as.dist(1-redun_Sim))
+labels(fit_red)<-c("Moist","Trop_grass","Dry","Savannas","Taiga",
+                   "Tundra","Xeric_wood","Coniferous","Temp_Mixed",
+                   "Temp_grass","Mediterranean")
 
-choices<-choose(length(biome_names),2) #x choose 2 possible pairs
-combs<-combn(length(biome_names),2) # create those pairs
+dend_red<-
+  fit_red %>% 
+  as.dendrogram() %>% 
+  color_branches(1,col=wes_palette("Cavalcanti")[3]) %>% 
+  set("branches_lwd", 4)
 
-similarity<-NULL
-A<-NULL
-B<-NULL
-
-for(i in 1:choices) {
-  nums<-combs[,i]
-  
-  sim<-
-    hypervolume_overlap_statistics(
-      hypervolume_set(
-        Total_hypervol[[nums[1]]], 
-        Total_hypervol[[nums[2]]],
-        check.memory = FALSE
-      )
-    )
-  
-  similarity<-rbind(similarity,sim)
-  
-  A[i]<-nums[1]
-  B[i]<-nums[2]
-}
-
-###
-Similarity_df<-data.frame(Biome1=biome_names[A],Biome2=biome_names[B])
-Similarity_df<-cbind(Similarity_df,similarity)
-
-tmp<-matrix(data = NA, nrow = 11, ncol = 11, byrow = FALSE,
-            dimnames = NULL)
-
-rownames(tmp)<-c(as.character(Similarity_df$Biome1[1]),as.character(unique(Similarity_df$Biome2)))
-colnames(tmp)<-c(as.character(unique(Similarity_df$Biome1)),as.character(Similarity_df$Biome2[10]))
-
-diag(tmp)<-1
-
-tmp[lower.tri(tmp, diag = FALSE)]<-Similarity_df$sorensen
-
-fit <-hclust(as.dist(1-tmp))
-plot(fit)
-
-## With the total values
-
-similarity_hypervol<-function(list_hyper){
-
-  choices<-choose(length(biome_names),2) #x choose 2 possible pairs
-  combs<-combn(length(biome_names),2) # create those pairs
-  
-  similarity_total<-NULL
-  A<-NULL
-  B<-NULL
-  
-  for(i in 1:choices) {
-    nums<-combs[,i]
-    
-    sim<-
-      hypervolume_overlap_statistics(
-        hypervolume_set(
-          list_hyper[[nums[1]]], 
-          list_hyper[[nums[2]]],
-          check.memory = FALSE
-        )
-      )
-    
-    similarity_total<-rbind(similarity_total,sim)
-    
-    A[i]<-nums[1]
-    B[i]<-nums[2]
-  }
-
-    return(similarity_total)  
-}
-
-###
-
-Create_dist_matrix<-function(Similarity_df, index="sorensen"){
-  
-  tmp<-matrix(data = NA, nrow = length(Similarity_df$Biome1), ncol = length(Similarity_df$Biome2), byrow = FALSE,
-              dimnames = NULL)
-  
-  rownames(tmp)<-c(as.character(Similarity_df$Biome1[1]),as.character(unique(Similarity_df$Biome2)))
-  colnames(tmp)<-c(as.character(unique(Similarity_df$Biome1)),as.character(Similarity_df$Biome2[10]))
-  
-  diag(tmp)<-1
-  tmp[lower.tri(tmp, diag = FALSE)]<-Similarity_df[[index]]
-  
-  return(tmp)
-
-}
-
-## Biome cluster using total species
-Sim_total<-data.frame(Biome1=biome_names[A],Biome2=biome_names[B])
-Sim_total<-cbind(Sim_total,similarity_total)
-
-dist_total<-Create_dist_matrix(Sim_total)
-
-fit_total <-hclust(as.dist(1-dist_total))
+## With the total species
+Total_Sim<-similarity_hypervol(Total_hypervol)
+fit_total <-hclust(as.dist(1-Total_Sim))
 labels(fit_total)<-c("Moist","Trop_grass","Dry","Savannas","Taiga",
                "Tundra","Xeric_wood","Mediterranean","Coniferous","Temp_grass","Temp_mixed")
 
@@ -256,40 +217,13 @@ dend_total<-
   set("branches_lwd", 4)
 
 #dir.create("./figs/hypervolumes_clusters")
+pdf("./figs/hypervolumes_clusters/Redundant_Sorensen.pdf", height = 9.4, width = 9.1)
+circlize_dendrogram(dend_red,dend_track_height = 0.7,labels_track_height = 0.2)
+dev.off()
 
 pdf("./figs/hypervolumes_clusters/Total_Sorensen.pdf",height = 9.4, width = 9.1)
 circlize_dendrogram(dend_total,dend_track_height = 0.7,labels_track_height = 0.2)
 dev.off()
-
-## Biome cluster using Redundant and widespread species----
-choices<-choose(length(biome_names),2) #x choose 2 possible pairs
-combs<-combn(length(biome_names),2) 
-
-Sim_red<-data.frame(Biome1=biome_names[combs[1,]],Biome2=biome_names[combs[2,]])
-Sim_red<-cbind(Sim_red,similarity)
-
-dist_red<-Create_dist_matrix(Sim_red)
-
-fit_red <-hclust(as.dist(1-dist_red))
-labels(fit_red)<-c("Moist","Trop_grass","Dry","Savannas","Taiga",
-                   "Tundra","Xeric_wood","Coniferous","Temp_Mixed",
-                   "Temp_grass","Mediterranean")
-
-
-dend_red<-
-  fit_red %>% 
-  as.dendrogram() %>% 
-  color_branches(1,col=wes_palette("Cavalcanti")[3]) %>% 
-  set("branches_lwd", 4)
-
-
-#dir.create("./figs/hypervolumes_clusters")
-
-pdf("./figs/hypervolumes_clusters/Redundant_Sorensen.pdf", height = 9.4, width = 9.1)
-par(mar=c(0, 0, 0, 0))
-circlize_dendrogram(dend_red,dend_track_height = 0.7,labels_track_height = 0.2)
-dev.off()
-
 
 # Hypervolumes for climatic categories ------------------------------------
 tropical<-c("Moist_Forest","Dry_Forest","Dry_Forest","Tropical_Grasslands","Savannas")
