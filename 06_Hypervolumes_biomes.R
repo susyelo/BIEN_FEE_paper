@@ -245,8 +245,13 @@ Traits_Biome_Di_Ri$ClimBiomes[which(Traits_Biome_Di_Ri$Biome=="Xeric_Woodlands")
 Traits_Biome_Di_Ri_tmp<-Traits_Biome_Di_Ri
 Traits_Biome_Di_Ri_tmp$Biome<-Traits_Biome_Di_Ri_tmp$ClimBiomes
 
-Climatic_hypervol<-Biomes_hypervolume(Traits_Biome_Di_Ri_tmp,unique(Traits_Biome_Di_Ri$ClimBiomes))
+biome_names<-unique(Traits_Biome_Di_Ri_tmp$Biome)
+Climatic_hypervol<-Biomes_hypervolume(Traits_Biome_Di_Ri_tmp,biome_names)
+saveRDS(Climatic_hypervol,"./outputs/Climatic_hypervolumes.rds")
 
+
+Climatic_Sim<-similarity_hypervol(Climatic_hypervol)
+fit_Climatic <-hclust(as.dist(1-Climatic_Sim))
 
 
 png("./figs/hypervolumes_clusters/Climatic_hypervolumes_total.png",width = 600, height = 600)
@@ -259,6 +264,8 @@ plot(
   ),
   contour.lwd=1.5,
   colors=c(brewer.pal(n=4,"Set1")),
-  show.legend=TRUE
+  show.legend=TRUE,
+  cex.data=1,cex.axis=1,cex.names=1,cex.legend=2,
+  show.random=FALSE
 )
 dev.off()
