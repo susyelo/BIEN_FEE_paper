@@ -65,3 +65,4 @@ foreach(i=1:nrow(tmp_num), .combine = rbind)%do%{
   v
 }
 
+pb_matrix<-as.matrix(table(Cells_sp$cell,Cells_sp$species))
