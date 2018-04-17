@@ -33,36 +33,60 @@ saveRDS(range_maps, "./data/base/BIEN3.0SeedPhylo_maps.rds")
 
 
 ## Create baseline raster: to extract the presence/absence of species in each cell
-# Base for resolution and projection
-resol<-2
-r_base<-raster(xmn = -167, xmx = -29,ymn = -57, ymx = 83,
-               crs = CRS(proj4string(r)))
-
-res(r_base) <- resol
+### For loops for each species in a 200x200km resolution map
+#r_base<-projectRaster(r, 
+#                      crs=crs(r),
+#                      res=2e+05)
+r_base<-r
 values(r_base)<-1:ncell(r_base)
-r_base<-projectRaster(r_base, r)
+names(r_base)<-"cell"
 
+## Convert raster to cell polygons
 p <- rasterToPolygons(r_base)
-p$cell <- 1:ncell(r_base)
-p$layer <- NULL
 
-# Absence/presence matrix of species
-num<-seq(1,length(range_maps),100)
-tmp_num<-data.frame(n1=num, n2=c(num[-1]+1,length(range_maps)))
+n_species<-length(range_maps$species)
 
 Cells_sp<-
-foreach(i=1:nrow(tmp_num), .combine = rbind)%do%{
-  
-  col1<-tmp_num$n1[i]
-  col2<-tmp_num$n2[i]
-  print(paste("Extract ranges from",range_maps$species[col1], "to", range_maps$species[col2]))
-  range_maps_sp<-range_maps[c(col1:col2),]
-  range_maps_df<-spTransform(range_maps_sp, CRS(proj4string(r)))
-  
-  v <- over(range_maps_df,p)
-  v$species<-range_maps_df$species
-  
-  v
-}
+  foreach(i=1:n_species, .combine = rbind)%do%{
+    
+    print(paste("Extract ranges from",range_maps$species[i]))
+    range_maps_sp<-range_maps[i,]
+    range_maps_df<-spTransform(range_maps_sp, CRS(proj4string(r)))
+    
+    v <-as.data.frame(over(range_maps_df,p,returnList = TRUE))
+    v$species<-range_maps_df$species
+    
+    v
+  }
+
+#saveRDS(Cells_sp, "outputs/Cells_sp_BIEN_200km.rds")
+saveRDS(Cells_sp, "outputs/Cells_sp_BIEN_100km.rds")
 
 pb_matrix<-as.matrix(table(Cells_sp$cell,Cells_sp$species))
+
+cell_richness<-data.frame(N_sp=as.numeric(rowSums(pb_matrix)),
+                          Cell=as.numeric(rownames(pb_matrix)))
+
+
+## Species richness with all the species with traits that are in the plant seed phylogeny
+values(r_base)<-NA
+values(r_base)[cell_richness$Cell]<-cell_richness$N_sp
+spplot(r_base)
+
+
+## Total proportion of species with trait information in the study (i.e., species with traits and included in the Smith and Brown phylogeny)
+## Change resolution and aggregate the richness from 100x100km to 200x200km. 
+
+
+r200<-aggregate(r, fact=2, fun=sum, expand=FALSE)## This calculates the average values of number of species in 4 cells
+
+r_base<-crop(r_base, extent(r200))
+
+indx<-which(values(!is.na(r200)))
+
+values(r_base)[indx][is.na(values(r_base)[indx])]<-0
+
+
+## Proportion of species with trait info
+Total_prop_map<-r_base/r200
+spplot(Total_prop_map)
