@@ -34,59 +34,68 @@ spPresence$cells<-cellFromRowCol(r_Total_Rich,spPresence$Y, spPresence$X)
 
 
 # Extract species for each biome --------------------------------------------
+## Base raster
+r_base<-r_Total_Rich
+values(r_base)<-1:ncell(r_base)
+names(r_base)<-"cell"
 
-biome_name<-biome_shp$biomes
+p <- rasterToPolygons(r_base)
 
-## Include biome classification in each cell 
-spPresence$biomes<-NA
-for (i in 1:length(biome_name)){
-  print(paste("Extracting",biome_name[i]))
-  shp_tmp<-biome_shp[which(biome_shp$biomes==biome_name[i]),]
-  cells_tmp<-unlist(cellFromPolygon(r_Total_Rich,shp_tmp))
-  spPresence$biomes[spPresence$cells%in%cells_tmp]<-biome_name[i]
-}
+Cells_biomes<-
+  foreach(i=1:length(biome_shp), .combine = rbind)%do%{
+    
+    print(paste("Extract cells from",biome_shp$biomes[i]))
+    biome_tmp<-biome_shp[i,]
+    
+    v <-as.data.frame(over(biome_tmp,p,returnList = TRUE))
+    v$biome<-biome_tmp$biomes
+    
+    v
+  }
 
-save(spPresence, file="./outputs/spPresence_biomes_all.RData")
+spPresence_biome<-merge(spPresence, Cells_biomes, by.x="cells", by.y="cell")
+save(spPresence_biome, file="./outputs/spPresence_biomes_all.RData")
 
-## Presence/absence matrix of biomes
-#tmp<-spPresence %>% 
-#  select(Species, biomes) %>%
-#  splist2presabs(sites.col = "biomes", sp.col = "Species")
-#save(tmp, file="./outputs/Biome_ALL_Sp_matrix.RData")
+## Number of cells per species in each biome
+cells_in_sp<-spPresence_biome %>% 
+  group_by(Species,biome) %>% 
+  summarise(N_cells=n_distinct(cells)) %>% 
+  group_by(Species) %>% 
+  mutate(Total_cells=sum(N_cells), prop_cells=N_cells/sum(N_cells)) %>% 
+  mutate(max_prop=max(prop_cells))
+
+## Species list for each biome
+# 1. Total numbr of species
+Total_sp_list<-tapply(cells_in_sp$Species,cells_in_sp$biome,unique)
+save(Total_sp_list, file="./outputs/Biome_list_species.RData")
+
+
+# 2. Species with highest proportion of their ranges in each biome
+Wides_sp<-cells_in_sp %>% 
+  dplyr::filter(prop_cells==max_prop)
+
+Wides_sp_list<-tapply(Wides_sp$Species,Wides_sp$biome,unique)
+
+# 3. Endemics for each biome
+Endemics_sp<-cells_in_sp %>% 
+  dplyr::filter(prop_cells==1)
+
+Endemics_sp_list<-tapply(Endemics_sp$Species,Endemics_sp$biome,unique)
 
 ## square matrix of pair-wise similarities among biomes
 # biome.sim.mat<-simMat(tmp[,-1], method = "Jaccard",upper=FALSE)
 
-biome_richness<-foreach(i=1:length(biome_name))  %do% {
-  
-  print(paste("Extracting",biome_name[i]))
-  shp_tmp<-biome_shp[which(biome_shp$biomes==biome_name[i]),]
-  cells_tmp<-unlist(cellFromPolygon(r_Total_Rich,shp_tmp))
-  sp_list_tmp<-unique(spPresence$Species[spPresence$cells%in%cells_tmp])
-  
-}
-names(biome_richness)<-biome_name
-
-save(biome_richness, file="./outputs/Biome_list_species.RData")
-
-## Calculate the number of endemic species
-
-spEndemics<-foreach(i=1:length(biome_richness), .combine='c') %do%{
-  
-  compare<-which(names(biome_richness)!=names(biome_richness)[i])
-  N_endemics<-setdiff(biome_richness[[i]],unlist(biome_richness[compare]))
-  n_distinct(N_endemics)
-}
-names(spEndemics)<-names(biome_richness) 
-
 # Total number of species per biome
-total_n<-unlist(lapply(biome_richness,n_distinct))
+total_n<-unlist(lapply(Total_sp_list,length))
+endemics_n<-unlist(lapply(Endemics_sp_list,length))
 
-prop_endemics<-round(spEndemics/total_n,2)*100
+prop_endemics<-round(endemics_n/total_n,3)*100
 
 
 ## Create similarity matrix
 ## Create a loop to calculate the similarity (number of species shared among biomes)
+
+biome_richness<-Total_sp_list
 
 spSimilarity<-foreach(i=1:length(biome_richness), .combine='cbind') %:%
   foreach(j=1:length(biome_richness), .combine='c') %do% {
@@ -195,3 +204,72 @@ circos.trackPlotRegion(track.index = 1, panel.fun = function(x, y) {
 }, bg.border = NA)
 dev.off()
 
+
+
+#### Species composition using the widespread distribution of the species
+spSimilarity_Wides<-foreach(i=1:length(Wides_sp_list), .combine='rbind') %:%
+  foreach(j=1:length(Total_sp_list), .combine='rbind') %do% {
+    
+    N_sp=length(intersect(Wides_sp_list[[i]],Total_sp_list[[j]]))
+    df<-data.frame(from=names(Wides_sp_list)[i], 
+                   to=names(Total_sp_list)[j],
+                   Sp_shared=N_sp)
+    df
+  }
+
+spSimilarity_ma<-matrix(data = spSimilarity_Wides$Sp_shared, nrow = n_distinct(spSimilarity_Wides$from), ncol = n_distinct(spSimilarity_Wides$to), byrow = FALSE,
+            dimnames = NULL)
+
+rownames(spSimilarity_ma)<-unique(spSimilarity_Wides$from)
+colnames(spSimilarity_ma)<-unique(spSimilarity_Wides$to)
+
+write.csv(spSimilarity_ma,"./supp_info/Shared_species_matrix.csv")
+
+diag(spSimilarity_ma)<-0
+
+Wides_sp_total<-unlist(lapply(Wides_sp_list,length))
+indx<-rev(order(Wides_sp_total))
+
+spSimilarity_ma<-spSimilarity_ma[indx,indx]
+
+## Since the matrix is not symetric I need to replace 
+
+col=c(wes_palette("Darjeeling",6,type="continuous"),
+      wes_palette("Cavalcanti",5,type="continuous"))
+
+
+colnames(spSimilarity_ma)<-c("Moist","Trop Dry",
+                            "Xeric","Trop Grass",
+                            "Savannas",
+                            "Coniferous","Temp Mixed",
+                            "Temp Grass","Mediterranean","Taiga","Tundra")
+
+
+## Proportion of widespread species
+
+# Total number of species per biome
+total_n<-unlist(lapply(Total_sp_list,length))
+Wides_sp_total<-unlist(lapply(Wides_sp_list,length))
+
+prop_widespread<-round(Wides_sp_total/total_n,2)*100
+
+
+colnames(spSimilarity_ma)<-paste(colnames(spSimilarity_ma),", ", prop_widespread[indx],"%", sep="")
+rownames(spSimilarity_ma)<-colnames(spSimilarity_ma)
+
+
+
+pdf("./figs/Total_similarity_biomes_Directional.pdf",width = 8)
+par(mar=c(0, 0, 0, 0))
+chordDiagram(spSimilarity_ma,column.col = col,
+             grid.col =col, directional = -1, 
+             direction.type = c("diffHeight", "arrows"),link.largest.ontop=TRUE,
+             annotationTrack = c("grid"),link.arr.length = 0.2,link.arr.type = "big.arrow",
+             preAllocateTracks = 1)
+circos.trackPlotRegion(track.index = 1, panel.fun = function(x, y) {
+  xlim = get.cell.meta.data("xlim")
+  ylim = get.cell.meta.data("ylim")
+  sector.name = get.cell.meta.data("sector.index")
+  circos.text(mean(xlim), ylim[1], sector.name, facing = "clockwise", niceFacing = TRUE, adj = c(0, 0.5), cex=0.8)
+}, bg.border = NA)
+dev.off()
