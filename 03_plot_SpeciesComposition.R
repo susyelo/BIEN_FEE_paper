@@ -61,7 +61,7 @@ Cells_biomes<-
   }
 
 spPresence_biome<-merge(spPresence, Cells_biomes, by.x="cells", by.y="cell")
-save(spPresence_biome, file="./outputs/spPresence_biomes_all.RData")
+saveRDS(spPresence_biome, file="./outputs/spPresence_biomes_all.rds")
 
 ## Number of cells per species in each biome
 cells_in_sp<-spPresence_biome %>% 
