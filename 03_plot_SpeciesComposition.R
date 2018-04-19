@@ -246,8 +246,9 @@ labels(fit_total_sim)<-c("Xeric", "Trop grass", "Savannas", "Trop Dry", "Moist",
 dend_total<-
   fit_total_sim %>% 
   as.dendrogram() %>% 
-  color_branches(1,col=wes_palette("Cavalcanti")[3]) %>% 
-  set("branches_lwd", 4)
+  color_branches(1,col=wes_palette("Cavalcanti")[2]) %>% 
+  set("branches_lwd", 4)  %>% 
+  set("labels_cex", 1.5)
 
 pdf("./figs/species_composition/species_composition_cluster_allsp.pdf", height = 9.4, width = 9.1)
 circlize_dendrogram(dend_total,dend_track_height = 0.7,labels_track_height = 0.2)
@@ -270,8 +271,9 @@ dend_dom<-
   fit_Dominant_similarity %>% 
   as.dendrogram() %>% 
   color_branches(1,col=wes_palette("Cavalcanti")[3]) %>% 
-  set("branches_lwd", 4)
+  set("branches_lwd", 4) %>% 
+  set("labels_cex", 1.5)
 
-pdf("./figs/species_composition/species_composition_cluster_Dominant_sp.pdf", height = 9.4, width = 9.1)
+pdf("./figs/species_composition/species_composition_cluster_Dominant_sp.pdf", height = 10, width = 9.1)
 circlize_dendrogram(dend_dom,dend_track_height = 0.7,labels_track_height = 0.2)
 dev.off()
