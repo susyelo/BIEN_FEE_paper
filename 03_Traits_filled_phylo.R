@@ -5,7 +5,8 @@ library(picante)
 library(Rphylopars)
 library(ade4)
 library(visdat)
-
+library(ggtree)
+library(phytools)
 
 # Functions ---------------------------------------------------------------
 source("./functions/tip_accuracy.R")
@@ -53,18 +54,53 @@ new_phylo<-ladderize(phylo_traits$phy)
 indx<-match(new_phylo$tip.label,phylo_traits$data$species)
 new_data<-phylo_traits$data[indx,]
 
-tree_tmp<-ggtree(new_phylo, branch.length="none", colour="orange")
+tree_tmp<-ggtree(new_phylo, branch.length="none")
   
-png("./supp_figs/Seed_phylo_speciesWithtraits.png")
+png("./supp_info/Seed_phylo_speciesWithtraits.png",width = 300)
 tree_tmp
 dev.off()
 
-png("./supp_figs/Missing_trait_data_phylo.png", width = 600, height = 600)
+png("./supp_info/Missing_trait_data_phylo.png", width = 600, height = 600)
 vis_miss(new_data[,-7], sort_miss = TRUE)
 dev.off()
 
+## Calculate lambda for each trait
+
+phylo_traits<- match.phylo.data(Seed_phylo, Trait_BIEN[,-1])
+phylo_traits$data$species<-rownames(phylo_traits$data)
+
+names(Trait_BIEN)[1]<-"species"
+traits_names<-names(Trait_BIEN[,-1])
+
+trait_lambda<-foreach(i=1:length(traits_names),.combine ="c")%do%{
+  
+  indx<-which(names(Trait_BIEN)==traits_names[i])
+  trait_tmp<-na.omit(Trait_BIEN[,c(1,indx)])
+  
+  phylo_traits_t<- match.phylo.data(Seed_phylo,Trait_BIEN[,c(1,indx)])
+  
+  trait_l<-phylosig(phylo_traits_t$phy, phylo_traits_t$data[,2], method="lambda")
+
+  trait_l
+}
 
 
+## I am having problem with the previous loop. Now trying a new way to calculate the phylogenetic signal in each trait
+library(phylosignal)
+library(adephylo)
+library(ape)
+library(phylobase)
+
+p4d <- phylo4d(Seed_phylo, Trait_BIEN[,-1])
+
+
+
+Wood_density_ps<-phylosig(phylo_traits$phy, phylo_traits$data[["Wood_density"]], method="lambda")
+Height_ps<-phylosig(phylo_traits$phy, phylo_traits$data[["Height"]], method="lambda")
+Seed_mass_ps<-phylosig(phylo_traits$phy, phylo_traits$data[["Seed_mass"]], method="lambda")
+Leaf_N_ps<-phylosig(phylo_traits$phy, phylo_traits$data[["Leaf_N"]], method="lambda")
+Leaf_P_ps<-phylosig(phylo_traits$phy, phylo_traits$data[["Leaf_P"]], method="lambda")
+SLA_ps<-phylosig(phylo_traits$phy, phylo_traits$data[["SLA"]], method="lambda")
 
 # Create species column and move it to the first position
 phylo_traits$data<-
