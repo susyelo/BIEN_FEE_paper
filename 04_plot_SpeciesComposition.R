@@ -166,10 +166,6 @@ spSimilarity_ma<-spSimilarity_ma[indx,indx]
 
 ## Since the matrix is not symetric I need to replace 
 
-col=c(wes_palette("Darjeeling",6,type="continuous"),
-      wes_palette("Cavalcanti",5,type="continuous"))
-
-
 colnames(spSimilarity_ma)<-c("Moist","Trop Dry",
                             "Xeric","Trop Grass",
                             "Savannas",
@@ -178,11 +174,8 @@ colnames(spSimilarity_ma)<-c("Moist","Trop Dry",
 
 
 ## Proportion of widespread species
-
-# Total number of species per biome
 total_n<-unlist(lapply(Total_sp_list,length))
 Wides_sp_total<-unlist(lapply(Wides_sp_list,length))
-
 prop_widespread<-round(Wides_sp_total/total_n,2)*100
 
 
@@ -190,8 +183,7 @@ colnames(spSimilarity_ma)<-paste(colnames(spSimilarity_ma),", ", prop_widespread
 rownames(spSimilarity_ma)<-colnames(spSimilarity_ma)
 
 
-
-pdf("./figs/Total_similarity_biomes_Directional.pdf",width = 8)
+pdf("./figs/Total_similarity_biomes_DominantSp.pdf",width = 8)
 par(mar=c(0, 0, 0, 0))
 chordDiagram(spSimilarity_ma,column.col = col,
              grid.col =col, directional = -1, 
