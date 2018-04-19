@@ -6,6 +6,7 @@ library(fuzzySim)
 library(circlize)
 library(RColorBrewer)
 library(wesanderson)
+library(dendextend)
 
 # functions ---------------------------------------------------------------
 source("./functions/BIEN2.0_RangeMaps_functions.R")
@@ -32,7 +33,14 @@ biome_shp<-shapefile("./data/processed/Olson_processed/Biomes_olson_projected.sh
 spPresence$cells<-cellFromRowCol(r_Total_Rich,spPresence$Y, spPresence$X)
 
 
-# Extract species for each biome --------------------------------------------
+## Folders
+#dir.create("./figs/species_composition")
+
+###############
+# PROCEDURE
+###############
+
+# 1. Extract species for each biome --------------------------------------------
 ## Base raster
 r_base<-r_Total_Rich
 values(r_base)<-1:ncell(r_base)
@@ -63,31 +71,31 @@ cells_in_sp<-spPresence_biome %>%
   mutate(Total_cells=sum(N_cells), prop_cells=N_cells/sum(N_cells)) %>% 
   mutate(max_prop=max(prop_cells))
 
-## Species list for each biome ----
 
-# 1. Total numbr of species
+# 2. Species list for each biome ------------------------------------------
+
+# 2.1 Total numbr of species
 Total_sp_list<-tapply(cells_in_sp$Species,cells_in_sp$biome,unique)
 
-# 2. Species with highest proportion of their ranges in each biome
+# 2.2 Species with highest proportion of their ranges in each biome
 Wides_sp<-cells_in_sp %>% 
   dplyr::filter(prop_cells==max_prop)
 
 Wides_sp_list<-tapply(Wides_sp$Species,Wides_sp$biome,unique)
 
-# 3. Endemics for each biome
+# 2.3 Endemics for each biome
 Endemics_sp<-cells_in_sp %>% 
   dplyr::filter(prop_cells==1)
 
 Endemics_sp_list<-tapply(Endemics_sp$Species,Endemics_sp$biome,unique)
 
-# Proportion of endemics in each biome
+# 2.4 Proportion of endemics in each biome
 total_n<-unlist(lapply(Total_sp_list,length))
 endemics_n<-unlist(lapply(Endemics_sp_list,length))
-
 prop_endemics<-round(endemics_n/total_n,3)*100
 
 
-## Create similarity matrix ----
+# 3. Create similarity matrix ---------------------------------------------
 ## Create a loop to calculate the similarity (number of species shared among biomes)
 biome_richness<-Total_sp_list
 
@@ -103,12 +111,13 @@ rownames(spSimilarity)<-names(biome_richness)
 #diag(spSimilarity)==unlist(lapply(biome_richness, n_distinct))
 #spSimilarity/diag(spSimilarity)
 
-# Chordplot of similarities -----------------------------------------------
+# 4. Chordplot of similarities --------------------------------------------
+
+# 4.1 Species composition among biomes using all the species
 ## order by richness 
 indx<-rev(order(diag(spSimilarity)))
 spSimilarity_1<-spSimilarity
 spSimilarity_1<-spSimilarity_1[indx,indx]
-
 
 col=c(wes_palette("Darjeeling",6,type="continuous"),
       wes_palette("Cavalcanti",5,type="continuous"))
@@ -124,7 +133,7 @@ colnames(spSimilarity_1)<-paste(colnames(spSimilarity_1),", ", prop_endemics[ind
 
 rownames(spSimilarity_1)<-colnames(spSimilarity_1)
 
-pdf("./figs/Total_similarity_biomes_withEndemics.pdf")
+pdf("./figs/species_composition/Total_similarity_biomes_withEndemics.pdf")
 par(mar=c(0, 0, 0, 0))
 chordDiagram(spSimilarity_1, annotationTrack = "grid", preAllocateTracks = 1, grid.col =col,symmetric = TRUE,
              column.col = col)
@@ -138,7 +147,8 @@ circos.trackPlotRegion(track.index = 1, panel.fun = function(x, y) {
 dev.off()
 
 
-#### Species composition using the widespread distribution of the species ----
+# 4.2 Species composition using Dominant species (those that occupy most of their ranges in each biome)
+# This is to give some direction of shared species among biome 
 spSimilarity_Wides<-foreach(i=1:length(Wides_sp_list), .combine='rbind') %:%
   foreach(j=1:length(Total_sp_list), .combine='rbind') %do% {
     
@@ -155,16 +165,15 @@ spSimilarity_ma<-matrix(data = spSimilarity_Wides$Sp_shared, nrow = n_distinct(s
 rownames(spSimilarity_ma)<-unique(spSimilarity_Wides$from)
 colnames(spSimilarity_ma)<-unique(spSimilarity_Wides$to)
 
+## Print file to include into the supplementary information
 write.csv(spSimilarity_ma,"./supp_info/Shared_species_matrix.csv")
 
 diag(spSimilarity_ma)<-0
-
 Wides_sp_total<-unlist(lapply(Wides_sp_list,length))
+
+# Order by richness
 indx<-rev(order(Wides_sp_total))
-
 spSimilarity_ma<-spSimilarity_ma[indx,indx]
-
-## Since the matrix is not symetric I need to replace 
 
 colnames(spSimilarity_ma)<-c("Moist","Trop Dry",
                             "Xeric","Trop Grass",
@@ -182,8 +191,7 @@ prop_widespread<-round(Wides_sp_total/total_n,2)*100
 colnames(spSimilarity_ma)<-paste(colnames(spSimilarity_ma),", ", prop_widespread[indx],"%", sep="")
 rownames(spSimilarity_ma)<-colnames(spSimilarity_ma)
 
-
-pdf("./figs/Total_similarity_biomes_DominantSp.pdf",width = 8)
+pdf("./figs/species_composition/Total_similarity_biomes_DominantSp.pdf",width = 8)
 par(mar=c(0, 0, 0, 0))
 chordDiagram(spSimilarity_ma,column.col = col,
              grid.col =col, directional = -1, 
@@ -196,4 +204,74 @@ circos.trackPlotRegion(track.index = 1, panel.fun = function(x, y) {
   sector.name = get.cell.meta.data("sector.index")
   circos.text(mean(xlim), ylim[1], sector.name, facing = "clockwise", niceFacing = TRUE, adj = c(0, 0.5), cex=0.8)
 }, bg.border = NA)
+dev.off()
+
+
+
+# 5. Species dissimilarity among biomes --------------------------------------
+Similarity_sp_biomes<-function(sp_list){
+  
+  biome_similarity <- foreach(i = 1:length(sp_list), .combine='rbind') %:%
+    foreach(j = 1:length(Total_sp_list), .combine='rbind') %do% {
+      
+      sp_intersection = length(intersect(sp_list[[i]],sp_list[[j]]))
+      biome1 <- length(sp_list[[i]])
+      biome2 <- length(sp_list[[j]])
+      
+      sorensen <- 2 * sp_intersection/(biome1 + biome2)
+      sorensen_df<-data.frame(sorensen=sorensen, 
+                             from=names(sp_list)[i], 
+                             to=names(sp_list)[j])
+      sorensen_df
+    }
+  
+  Similarity_ma<-matrix(data = biome_similarity$sorensen, 
+                        nrow = n_distinct(biome_similarity$from), 
+                        ncol = n_distinct(biome_similarity$to), byrow = FALSE,
+                          dimnames = NULL)
+  
+  rownames(Similarity_ma)<-unique(biome_similarity$from)
+  colnames(Similarity_ma)<-unique(biome_similarity$to)
+  
+  Similarity_ma
+}
+  
+## Dissimilarity all species  
+Total_similarity<-Similarity_sp_biomes(Total_sp_list)
+fit_total_sim <-hclust(as.dist(1-Total_similarity))
+
+labels(fit_total_sim)<-c("Xeric", "Trop grass", "Savannas", "Trop Dry", "Moist", "Taiga","Tundra","Mediterranean",
+  "Coniferous","Temp Grass","Temp Mixed")
+
+dend_total<-
+  fit_total_sim %>% 
+  as.dendrogram() %>% 
+  color_branches(1,col=wes_palette("Cavalcanti")[3]) %>% 
+  set("branches_lwd", 4)
+
+pdf("./figs/species_composition/species_composition_cluster_allsp.pdf", height = 9.4, width = 9.1)
+circlize_dendrogram(dend_total,dend_track_height = 0.7,labels_track_height = 0.2)
+dev.off()
+
+
+
+## Dissimilarity with dominant species
+Dominant_similarity<-Similarity_sp_biomes(Wides_sp_list)
+fit_Dominant_similarity <-hclust(as.dist(1-Dominant_similarity))
+
+## Check the order first
+#labels(fit_Dominant_similarity)
+labels(fit_Dominant_similarity)<-c("Taiga","Tundra", "Moist", "Trop grass", 
+                                   "Savannas", "Trop Dry", "Xeric",
+                                   "Coniferous","Mediterranean",
+                                   "Temp Grass","Temp Mixed")
+  
+dend_dom<-
+  fit_Dominant_similarity %>% 
+  as.dendrogram() %>% 
+  color_branches(1,col=wes_palette("Cavalcanti")[3]) %>% 
+  set("branches_lwd", 4)
+
+pdf("./figs/species_composition/species_composition_cluster_Dominant_sp.pdf", height = 9.4, width = 9.1)
+circlize_dendrogram(dend_dom,dend_track_height = 0.7,labels_track_height = 0.2)
 dev.off()
