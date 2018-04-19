@@ -20,6 +20,9 @@ Seed_phylo<-read.tree("./data/base/big_seed_plant_trees_v0.1/ALLMB.tre")
 r<-raster("./data/base/BIEN_2_Ranges/richness100km.tif")
 
 
+#4. BIEN2.0 range matrix
+spPresence<-read.csv("./data/base/BIEN_2_Ranges/presence100km.csv", col.names=c("Species","Y","X"))
+
 # Subset data -------------------------------------------------------------
 Trait_BIEN_df <-
 Trait_BIEN_df %>% 
@@ -27,6 +30,11 @@ Trait_BIEN_df %>%
 
 
 # Download range maps -----------------------------------------------------
+sp_all<-as.character(unique(spPresence$Species))
+range_maps_all<-BIEN_ranges_load_species(sp_all)
+saveRDS(range_maps_all, "./data/base/BIEN3.0all_species.rds")
+
+
 range_maps<-BIEN_ranges_load_species(Trait_BIEN_df$scrubbed_species_binomial)
 saveRDS(range_maps, "./data/base/BIEN3.0SeedPhylo_maps.rds")
 

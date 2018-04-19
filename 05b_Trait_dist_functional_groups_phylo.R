@@ -23,8 +23,10 @@ Traits_phylo<-read.csv("./data/processed/traits_ALLMB.csv")
 spPresence<-read.csv("./data/base/BIEN_2_Ranges/presence100km.csv")
 names(spPresence) = c("Species","Y","X")
 
-#3. Richness raster as reference
+#3. Richness raster and dataframe with cells and biome info
 r_Total_Rich<-raster("./data/base/BIEN_2_Ranges/richness100km.tif")
+cell_sp_biomes<-readRDS("./outputs/spPresence_biomes_all.rds")
+
 
 #4. Biomes shapefiles
 biome_shp<-shapefile("./data/processed/Olson_processed/Biomes_olson_projected.shp")
@@ -40,9 +42,32 @@ Growth_form$SPECIES_STD<-gsub(" ","_",Growth_form$SPECIES_STD)
 TraitSpecies <- unique(Traits_phylo$species)
 spMatrix_sub <- splistToMatrix(spPresence,TraitSpecies)
 
-Biomes_pabs<-spMatrix_biomes(spMatrix = spMatrix_sub,
-                             biome_shp = biome_shp,
-                             raster_ref = r_Total_Rich)
+## Remove cells without species
+indx<-which(rowSums(spMatrix_sub)!=0)
+spMatrix_sub<-spMatrix_sub[indx,]
+
+cell_sp_biomes$cells_names<-paste("Cell",cell_sp_biomes$cells,sep="_")
+cell_indx<-match(rownames(spMatrix_sub),cell_sp_biomes$cells_names)
+
+## 2. Presence/absence of species in each biome
+Biomes_pabs_cells<-spMatrix_sub
+rownames(Biomes_pabs_cells)<-cell_sp_biomes$biome[cell_indx]
+Biomes_pabs_cells<-Biomes_pabs_cells[!is.na(rownames(Biomes_pabs_cells)),]
+
+biomes_names<-unique(rownames(Biomes_pabs_cells))
+
+Biomes_Abun_sp<-foreach(i=1:length(biomes_names),.combine=rbind)%do%
+{
+  
+  indx<-which(row.names(Biomes_pabs_cells)==biomes_names[i])
+  biome_abun<-colSums(Biomes_pabs_cells[indx,])
+  
+}
+row.names(Biomes_Abun_sp)<-biomes_names
+
+#3. Final presence/absence matrix species vs biomes
+Biomes_pabs_sp<-Biomes_Abun_sp
+Biomes_pabs_sp[which(Biomes_pabs_sp>0)]<-1
 
 # Compute distance matrix of trait between each pair of species  ----------
 rownames(Traits_phylo)<-Traits_phylo$species
@@ -62,7 +87,22 @@ Dist_matrix<-compute_dist_matrix(Traits_phylo[,traits],metric="euclidean",
 # Calculating relative abundance
 Biome_relAbun<-make_relative(Biomes_pabs$Biomes_Abun)
 
-Biomes_di = distinctiveness(Biome_relAbun, Dist_matrix)
+
+# 1. Calculating distinctiveness using relative abundance
+Biomes_di_abun = distinctiveness(Biome_relAbun, Dist_matrix)
+
+Biomes_di_abun_clean<-
+  Biomes_di_abun%>%
+  as.matrix %>% 
+  t()%>%
+  as.data.frame()%>%
+  mutate(species=colnames(Biomes_di_abun))%>%
+  gather(key="Biome",value="Di",-species) %>% 
+  filter(!is.na(Di))
+
+
+# 2. Calculating distinctiveness using relative abundance
+Biomes_di = distinctiveness(Biomes_pabs_sp, Dist_matrix)
 
 Biomes_di_clean<-
   Biomes_di%>%
@@ -72,6 +112,10 @@ Biomes_di_clean<-
   mutate(species=colnames(Biomes_di))%>%
   gather(key="Biome",value="Di",-species) %>% 
   filter(!is.na(Di))
+
+indx<-match(Biomes_di_clean$species,Biomes_di_abun_clean$species)
+Biomes_di_clean$Di_abun<-Biomes_di_abun_clean$Di[indx]
+
 
 # Compute functional Uniqueness per biome ----------------------------
 Biomes_ui = uniqueness(Biomes_pabs$Biomes_pabs_cells, Dist_matrix)
@@ -93,8 +137,8 @@ biome_names=biome_shp$biomes
 rest_species<-
   foreach(i=1:length(biome_names), .combine = rbind)%do%
   {
-    indx<-which(rownames(Biomes_pabs$Biomes_pabs_cells)==biome_names[i])
-    biome_PAbs_tmp<-Biomes_pabs$Biomes_pabs_cells[indx,]
+    indx<-which(rownames(Biomes_pabs_cells)==biome_names[i])
+    biome_PAbs_tmp<-Biomes_pabs_cells[indx,]
     rest_species<-restrictedness(pres_matrix = biome_PAbs_tmp)
     rest_species$Biome<-biome_names[i]
     
@@ -129,6 +173,7 @@ Biome_Di_Ri$FunDi2<-Biome_Di_Ri$Di*Biome_Di_Ri$Ri
 
 write.csv(Biome_Di_Ri, "./outputs/Biome_Di_Ri_phylo.csv")
 
+Biome_Di_Ri$Widespread<-1-Biome_Di_Ri$Ri
 
 ## Heatmaps
 # Total headmap
@@ -137,9 +182,9 @@ foreach (index=1:length(biome_names))%do%{
   
   png(paste("./figs/Di_Ri_heatmaps/Heatmap_", biome_names[index],".png",sep=""))
   print(Di_Ri_heatmaps(Biome_Di_Ri = Biome_Di_Ri, 
-                 xvar = Biome_Di_Ri$Ri,
+                 xvar = Biome_Di_Ri$Widespread,
                  yvar = Biome_Di_Ri$DiScale,
-                 xlab = "Ri",
+                 xlab = "",
                  ylab = "Di",
                  Biome_toPlot = biome_names[index]))
   dev.off()
