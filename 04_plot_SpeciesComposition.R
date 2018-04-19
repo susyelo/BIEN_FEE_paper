@@ -24,7 +24,6 @@ r_Total_Rich<-raster("./data/base/BIEN_2_Ranges/richness100km.tif")
 ## Include NA to the cells that have not information on them
 r_Total_Rich[r_Total_Rich==0]<-NA
 
-#spplot(r_Total_Rich)
 
 # 3. Shapefiles
 biome_shp<-shapefile("./data/processed/Olson_processed/Biomes_olson_projected.shp")
@@ -64,11 +63,10 @@ cells_in_sp<-spPresence_biome %>%
   mutate(Total_cells=sum(N_cells), prop_cells=N_cells/sum(N_cells)) %>% 
   mutate(max_prop=max(prop_cells))
 
-## Species list for each biome
+## Species list for each biome ----
+
 # 1. Total numbr of species
 Total_sp_list<-tapply(cells_in_sp$Species,cells_in_sp$biome,unique)
-save(Total_sp_list, file="./outputs/Biome_list_species.RData")
-
 
 # 2. Species with highest proportion of their ranges in each biome
 Wides_sp<-cells_in_sp %>% 
@@ -82,17 +80,14 @@ Endemics_sp<-cells_in_sp %>%
 
 Endemics_sp_list<-tapply(Endemics_sp$Species,Endemics_sp$biome,unique)
 
-## square matrix of pair-wise similarities among biomes
-# biome.sim.mat<-simMat(tmp[,-1], method = "Jaccard",upper=FALSE)
-
-# Total number of species per biome
+# Proportion of endemics in each biome
 total_n<-unlist(lapply(Total_sp_list,length))
 endemics_n<-unlist(lapply(Endemics_sp_list,length))
 
 prop_endemics<-round(endemics_n/total_n,3)*100
 
 
-## Create similarity matrix
+## Create similarity matrix ----
 ## Create a loop to calculate the similarity (number of species shared among biomes)
 
 biome_richness<-Total_sp_list
@@ -108,8 +103,8 @@ rownames(spSimilarity)<-names(biome_richness)
 ## Double check that the numbers are correct
 #diag(spSimilarity)==unlist(lapply(biome_richness, n_distinct))
 #spSimilarity/diag(spSimilarity)
-# Chordplot of similarities -----------------------------------------------
 
+# Chordplot of similarities -----------------------------------------------
 ## order by richness 
 indx<-rev(order(diag(spSimilarity)))
 spSimilarity_1<-spSimilarity
