@@ -83,7 +83,6 @@ rownames(Traits_phylo)<-Traits_phylo$species
 # Select traits to calculate the distances among species
 traits<-c("Wood_density","Leaf_N","SLA","Seed_mass","Height","Leaf_P")
 
-
 Dist_matrix<-compute_dist_matrix(Traits_phylo[,traits],metric="euclidean",
                                  center = TRUE,
                                  scale = TRUE) ## This can take a while
@@ -178,20 +177,6 @@ Biome_Di_Ri$Widespread<-1-Biome_Di_Ri$Ri
 
 ## Heatmaps
 # Total headmap
-
-foreach (index=1:length(biome_names))%do%{
-  
-  png(paste("./figs/Di_Ri_heatmaps/Heatmap_", biome_names[index],".png",sep=""))
-  print(Di_Ri_heatmaps(Biome_Di_Ri = Biome_Di_Ri, 
-                 xvar = Biome_Di_Ri$Widespread,
-                 yvar = Biome_Di_Ri$DiScale,
-                 xlab = "",
-                 ylab = "Di",
-                 Biome_toPlot = biome_names[index]))
-  dev.off()
-
-} 
-
 Biome_Di_Ri$Biome<-as.factor(Biome_Di_Ri$Biome)
 
 Biome_Di_Ri$Biome<-factor(Biome_Di_Ri$Biome, levels=c("Moist_Forest","Savannas","Tropical_Grasslands",
