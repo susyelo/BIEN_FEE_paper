@@ -117,9 +117,11 @@ names(woody_dens)<-phylo_traits$data$species
 accu_woody<-tip_accuracy(Tree = phylo_traits$phy, Trait = woody_dens, 
                    method = "Rphylopars", runs = 1)
 
+
+
 # Fill trait data using phylo info
-traits_inPhylo2<- phylopars(trait_data = phylo_traits$data,tree = phylo_traits$phy,
-                     pheno_error = F, phylo_correlated = F, pheno_correlated = F)
+traits_inPhylo<- phylopars(trait_data = phylo_traits$data,tree = phylo_traits$phy,
+                            model = "lambda", pheno_error=FALSE,pheno_correlated = FALSE,phylo_correlated=FALSE)
 
 traits_completed<-as.data.frame(traits_inPhylo$anc_recon[1:length(phylo_traits$phy$tip.label),])
 
@@ -156,3 +158,45 @@ traits_completed<-
 rownames(traits_completed)<-traits_completed$species
 
 write.csv(traits_completed, "./data/processed/traits_ALLMB.csv",row.names =FALSE)
+
+
+
+# Fill trait data using phylo info and lambda -----
+traits_inPhylo2<- phylopars(trait_data = phylo_traits$data,tree = phylo_traits$phy,
+                            model = "lambda", pheno_error=FALSE,pheno_correlated = FALSE,phylo_correlated=FALSE)
+
+traits_completed<-as.data.frame(traits_inPhylo2$anc_recon[1:length(phylo_traits$phy$tip.label),])
+
+# Drop outliers -----------------------------------------------------------
+pca <- dudi.pca(traits_completed,
+                scannf = F, nf = 5)
+
+plot(pca$li[,1:2])
+pca$li[which(pca$li$Axis1>5),]
+
+# Dropping Cocos_nucifera
+traits_completed$species<-rownames(traits_completed)
+
+traits_completed<-
+  traits_completed %>%
+  filter(species!="Cocos_nucifera") %>%
+  droplevels()
+
+
+# Testing again for outliers
+rownames(traits_completed)<-traits_completed$species
+pca <- dudi.pca(traits_completed[,-7],
+                scannf = F, nf = 5)
+
+plot(pca$li[,1:2])
+
+## Extreme axis values based mainly on extreme seed mass values
+sp_to_drop<-rownames(pca$li[which(pca$li$Axis2<(-5) & pca$li$Axis1>4),])
+write.csv(sp_to_drop, "./outputs/sp_outliers.csv")
+
+traits_completed<-
+  traits_completed %>%
+  filter(species%in%sp_to_drop==FALSE)
+rownames(traits_completed)<-traits_completed$species
+
+write.csv(traits_completed, "./data/processed/traits_ALLMB_lambda.csv",row.names =FALSE)
