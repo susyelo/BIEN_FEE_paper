@@ -8,7 +8,15 @@ library(viridis)
 library(ggridges)
 library(wesanderson)
 library(lattice)
+library(ggplot2)
+library(ggpubr)
 
+
+# Settings ----------------------------------------------------------------
+theme_set(
+  theme_minimal() +
+    theme(legend.position = "top")
+)
 
 # Functions ---------------------------------------------------------------
 source("./functions/check_functions.R")
@@ -84,11 +92,9 @@ Dist_matrix<-compute_dist_matrix(Traits_phylo[,traits],metric="euclidean",
 
 # Compute functional distinctiveness per biome ----------------------------
 
+# 1. Calculating distinctiveness
 # Calculating relative abundance
-Biome_relAbun<-make_relative(Biomes_pabs$Biomes_Abun)
-
-
-# 1. Calculating distinctiveness using relative abundance
+Biome_relAbun<-make_relative(Biomes_Abun_sp)
 Biomes_di_abun = distinctiveness(Biome_relAbun, Dist_matrix)
 
 Biomes_di_abun_clean<-
@@ -116,11 +122,8 @@ Biomes_di_clean<-
 indx<-match(Biomes_di_clean$species,Biomes_di_abun_clean$species)
 Biomes_di_clean$Di_abun<-Biomes_di_abun_clean$Di[indx]
 
-
 # Compute functional Uniqueness per biome ----------------------------
-Biomes_ui = uniqueness(Biomes_pabs$Biomes_pabs_cells, Dist_matrix)
-
-Biomes_ui = apply(Biome_relAbun, 1,
+Biomes_ui = apply(Biomes_pabs_sp, 1,
                function(x, dist_m) {
                  smaller_com = x[x > 0 & !is.na(x)]
                  uniqueness(t(as.matrix(smaller_com)), dist_m)
@@ -133,6 +136,7 @@ Biomes_ui_clean$Biome<-gsub('\\.', '', Biomes_ui_clean$Biome)
 
 biome_names=biome_shp$biomes
 # Compute functional restrictiness per biome ----------------------------
+
 ## A 0 value indicates that the focal species is present in all the sites.
 rest_species<-
   foreach(i=1:length(biome_names), .combine = rbind)%do%
@@ -168,9 +172,6 @@ Biomes_ui_clean<-
 Biome_Di_Ri<-merge(Biomes_di_clean, rest_species)
 Biome_Di_Ri<-merge(Biome_Di_Ri,Biomes_ui_clean)
 
-Biome_Di_Ri$FunDi<-(Biome_Di_Ri$DiScale+Biome_Di_Ri$Ri)/2
-Biome_Di_Ri$FunDi2<-Biome_Di_Ri$Di*Biome_Di_Ri$Ri
-
 write.csv(Biome_Di_Ri, "./outputs/Biome_Di_Ri_phylo.csv")
 
 Biome_Di_Ri$Widespread<-1-Biome_Di_Ri$Ri
@@ -190,6 +191,41 @@ foreach (index=1:length(biome_names))%do%{
   dev.off()
 
 } 
+
+Biome_Di_Ri$Biome<-as.factor(Biome_Di_Ri$Biome)
+
+Biome_Di_Ri$Biome<-factor(Biome_Di_Ri$Biome, levels=c("Moist_Forest","Savannas","Tropical_Grasslands",
+                                                       "Dry_Forest","Xeric_Woodlands","Mediterranean_Woodlands",
+                                                       "Temperate_Grasslands","Temperate_Mixed","Coniferous_Forests",
+                                                       "Taiga","Tundra"))
+
+# Hexagonal binning
+pdf("./figs/Di_Ri_heatmaps/All_biomes_heatmap.pdf")
+Biome_Di_Ri %>% 
+  ggplot(aes(Widespread, DiScale)) +
+  stat_binhex(bins=10,aes(fill=log(..count..)))+
+  scale_fill_gradientn(colours=c("#00AFBB","#FC4E07"),name = "log(Richness)")  +
+  theme_minimal()+
+  facet_wrap( ~ Biome, ncol = 3)+
+  ylab("Distinctiveness")+
+  xlab("Widespread index")
+dev.off()
+  
+
+
+# Add 2d density estimation
+sp<-Biome_Di_Ri %>% 
+  filter(Biome=="Coniferous_Forests") %>% 
+  ggplot(aes(Widespread, DiScale)) +
+  geom_point(color = "lightgray")
+
+sp + geom_density_2d()
+
+# Use different geometry and change the gradient color
+sp + stat_density_2d(aes(fill = ..level..), geom = "polygon") +
+  scale_fill_gradientn(colors = c("#FFEDA0", "#FEB24C", "#F03B20"))
+
+
 
 
 ## Ui vs Ri heatmaps
