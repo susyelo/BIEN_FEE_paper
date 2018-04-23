@@ -63,6 +63,7 @@ Cells_biomes<-
 spPresence_biome<-merge(spPresence, Cells_biomes, by.x="cells", by.y="cell")
 saveRDS(spPresence_biome, file="./outputs/spPresence_biomes_all.rds")
 
+
 ## Number of cells per species in each biome
 cells_in_sp<-spPresence_biome %>% 
   group_by(Species,biome) %>% 
@@ -70,6 +71,8 @@ cells_in_sp<-spPresence_biome %>%
   group_by(Species) %>% 
   mutate(Total_cells=sum(N_cells), prop_cells=N_cells/sum(N_cells)) %>% 
   mutate(max_prop=max(prop_cells))
+
+saveRDS(cells_in_sp, file="./outputs/spPresence_cell_prop_biomes_all.rds")
 
 
 # 2. Species list for each biome ------------------------------------------
