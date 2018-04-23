@@ -7,6 +7,7 @@ library(circlize)
 library(RColorBrewer)
 library(wesanderson)
 library(dendextend)
+library(sf)
 
 # functions ---------------------------------------------------------------
 source("./functions/BIEN2.0_RangeMaps_functions.R")
@@ -27,7 +28,7 @@ r_Total_Rich[r_Total_Rich==0]<-NA
 
 
 # 3. Shapefiles
-biome_shp<-shapefile("./data/processed/Olson_processed/Biomes_olson_projected.shp")
+biome_shp<-st_read("./data/processed/Olson_processed/Biomes_olson_projected.shp")
 
 ## Include cell number using the row and col numbers as reference
 spPresence$cells<-cellFromRowCol(r_Total_Rich,spPresence$Y, spPresence$X)
@@ -47,26 +48,44 @@ values(r_base)<-1:ncell(r_base)
 names(r_base)<-"cell"
 
 p <- rasterToPolygons(r_base)
+p<-st_as_sf(p)
+
 
 Cells_biomes<-
-  foreach(i=1:length(biome_shp), .combine = rbind)%do%{
-    
+  foreach(i=1:length(biome_shp$biomes), .combine = rbind)%do%
+  
+  {
     print(paste("Extract cells from",biome_shp$biomes[i]))
     biome_tmp<-biome_shp[i,]
+    int <- as_tibble(st_intersection(st_buffer(biome_tmp, 0),p))
+    int$areaBiome <- st_area(int$geometry)
     
-    v <-as.data.frame(over(biome_tmp,p,returnList = TRUE))
-    v$biome<-biome_tmp$biomes
-    
-    v
+    int
   }
 
-spPresence_biome<-merge(spPresence, Cells_biomes, by.x="cells", by.y="cell")
-saveRDS(spPresence_biome, file="./outputs/spPresence_biomes_all.rds")
 
+## Area of a pixel
+area_ref<-st_area(p[1,])
+
+# Calculate the proportion of pixel area in each biome
+tb_biome <- 
+  Cells_biomes %>%
+  group_by(cell) %>%
+  mutate(areaProp = (areaBiome*100)/area_ref) %>% 
+  mutate(maxArea=max(areaProp))
+
+## Select the biome that have the highest proportion of land of the pixel. 
+tb_biome <- 
+  tb_biome %>% 
+  filter(areaProp==maxArea) %>% 
+  dplyr::select(biomes,cell)
+
+spPresence_biome<-merge(spPresence, tb_biome, by.x="cells", by.y="cell")
+saveRDS(spPresence_biome, file="./outputs/spPresence_biomes_all.rds")
 
 ## Number of cells per species in each biome
 cells_in_sp<-spPresence_biome %>% 
-  group_by(Species,biome) %>% 
+  group_by(Species,biomes) %>% 
   summarise(N_cells=n_distinct(cells)) %>% 
   group_by(Species) %>% 
   mutate(Total_cells=sum(N_cells), prop_cells=N_cells/sum(N_cells)) %>% 
@@ -78,19 +97,19 @@ saveRDS(cells_in_sp, file="./outputs/spPresence_cell_prop_biomes_all.rds")
 # 2. Species list for each biome ------------------------------------------
 
 # 2.1 Total numbr of species
-Total_sp_list<-tapply(cells_in_sp$Species,cells_in_sp$biome,unique)
+Total_sp_list<-tapply(cells_in_sp$Species,cells_in_sp$biomes,unique)
 
 # 2.2 Species with highest proportion of their ranges in each biome
 Wides_sp<-cells_in_sp %>% 
   dplyr::filter(prop_cells==max_prop)
 
-Wides_sp_list<-tapply(Wides_sp$Species,Wides_sp$biome,unique)
+Wides_sp_list<-tapply(Wides_sp$Species,Wides_sp$biomes,unique)
 
 # 2.3 Endemics for each biome
 Endemics_sp<-cells_in_sp %>% 
   dplyr::filter(prop_cells==1)
 
-Endemics_sp_list<-tapply(Endemics_sp$Species,Endemics_sp$biome,unique)
+Endemics_sp_list<-tapply(Endemics_sp$Species,Endemics_sp$biomes,unique)
 
 # 2.4 Proportion of endemics in each biome
 total_n<-unlist(lapply(Total_sp_list,length))
@@ -194,7 +213,7 @@ prop_widespread<-round(Wides_sp_total/total_n,2)*100
 colnames(spSimilarity_ma)<-paste(colnames(spSimilarity_ma),", ", prop_widespread[indx],"%", sep="")
 rownames(spSimilarity_ma)<-colnames(spSimilarity_ma)
 
-pdf("./figs/species_composition/Total_similarity_biomes_DominantSp.pdf",width = 8)
+pdf("./figs/species_composition/Total_similarity_biomes_DominantSp2.pdf",width = 8)
 par(mar=c(0, 0, 0, 0))
 chordDiagram(spSimilarity_ma,column.col = col,
              grid.col =col, directional = -1, 
@@ -253,7 +272,7 @@ dend_total<-
   set("branches_lwd", 4)  %>% 
   set("labels_cex", 1.5)
 
-pdf("./figs/species_composition/species_composition_cluster_allsp.pdf", height = 9.4, width = 9.1)
+pdf("./figs/species_composition/species_composition_cluster_allsp2.pdf", height = 9.4, width = 9.1)
 circlize_dendrogram(dend_total,dend_track_height = 0.7,labels_track_height = 0.2)
 dev.off()
 
@@ -277,6 +296,6 @@ dend_dom<-
   set("branches_lwd", 4) %>% 
   set("labels_cex", 1.5)
 
-pdf("./figs/species_composition/species_composition_cluster_Dominant_sp.pdf", height = 10, width = 9.1)
+pdf("./figs/species_composition/species_composition_cluster_Dominant_sp2.pdf", height = 10, width = 9.1)
 circlize_dendrogram(dend_dom,dend_track_height = 0.7,labels_track_height = 0.2)
 dev.off()
