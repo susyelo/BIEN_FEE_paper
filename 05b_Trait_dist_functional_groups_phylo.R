@@ -185,7 +185,7 @@ Biome_Di_Ri$Biome<-factor(Biome_Di_Ri$Biome, levels=c("Moist_Forest","Savannas",
                                                        "Taiga","Tundra"))
 
 # Hexagonal binning
-pdf("./figs/Di_Ri_heatmaps/All_biomes_heatmap.pdf")
+pdf("./figs/Di_Ri_heatmaps/All_biomes_heatmap2.pdf")
 Biome_Di_Ri %>% 
   ggplot(aes(Widespread, DiScale)) +
   stat_binhex(bins=10,aes(fill=log(..count..)))+
