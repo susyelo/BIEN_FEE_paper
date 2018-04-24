@@ -42,14 +42,6 @@ phylo_traits<- match.phylo.data(Seed_phylo, Trait_BIEN[,-1])
 phylo_traits$data$species<-rownames(phylo_traits$data)
 
 ## Visualise the dataframe to understand the main trait gaps 
-pdf("./supp_figs/Missing_trait_data_cluster.pdf", width = 8)
-vis_miss(phylo_traits$data[,-7],cluster = TRUE, sort_miss = TRUE)
-dev.off()
-
-pdf("./supp_figs/Missing_trait_data.pdf", width = 8)
-vis_miss(phylo_traits$data[,-7], sort_miss = TRUE)
-dev.off()
-
 new_phylo<-ladderize(phylo_traits$phy)
 
 indx<-match(new_phylo$tip.label,phylo_traits$data$species)
@@ -61,41 +53,13 @@ png("./supp_info/Seed_phylo_speciesWithtraits.png",width = 300)
 tree_tmp
 dev.off()
 
-png("./supp_info/Missing_trait_data_phylo.png", width = 600, height = 600)
-vis_miss(new_data[,-7], sort_miss = TRUE)
+png("./supp_info/Missing_trait_data_phylo.png", width = 1100, height = 800)
+vis_miss(new_data[,-7], sort_miss = TRUE) +
+  theme(text = element_text(size=22),
+        axis.text.x = element_text(size=16)) 
 dev.off()
 
 ## Calculate lambda for each trait
-
-phylo_traits<- match.phylo.data(Seed_phylo, Trait_BIEN[,-1])
-phylo_traits$data$species<-rownames(phylo_traits$data)
-
-names(Trait_BIEN)[1]<-"species"
-traits_names<-names(Trait_BIEN[,-1])
-
-trait_lambda<-foreach(i=1:length(traits_names),.combine ="c")%do%{
-  
-  indx<-which(names(Trait_BIEN)==traits_names[i])
-  trait_tmp<-na.omit(Trait_BIEN[,c(1,indx)])
-  
-  phylo_traits_t<- match.phylo.data(Seed_phylo,Trait_BIEN[,c(1,indx)])
-  
-  trait_l<-phylosig(phylo_traits_t$phy, phylo_traits_t$data[,2], method="lambda")
-
-  trait_l
-}
-
-
-## I am having problem with the previous loop. Now trying a new way to calculate the phylogenetic signal in each trait
-library(phylosignal)
-library(adephylo)
-library(ape)
-library(phylobase)
-
-p4d <- phylo4d(Seed_phylo, Trait_BIEN[,-1])
-
-
-
 Wood_density_ps<-phylosig(phylo_traits$phy, phylo_traits$data[["Wood_density"]], method="lambda")
 Height_ps<-phylosig(phylo_traits$phy, phylo_traits$data[["Height"]], method="lambda")
 Seed_mass_ps<-phylosig(phylo_traits$phy, phylo_traits$data[["Seed_mass"]], method="lambda")
@@ -112,11 +76,11 @@ phylo_traits$data<-
 ## Checking accurancy of trait imputation
 # Taken from http://www.ecography.org/appendix/ecog-03480
 
-woody_dens<-phylo_traits$data$Wood_density
-names(woody_dens)<-phylo_traits$data$species
+#woody_dens<-phylo_traits$data$Wood_density
+#names(woody_dens)<-phylo_traits$data$species
 
-accu_woody<-tip_accuracy(Tree = phylo_traits$phy, Trait = woody_dens, 
-                   method = "Rphylopars", runs = 1)
+#accu_woody<-tip_accuracy(Tree = phylo_traits$phy, Trait = woody_dens, 
+#                   method = "Rphylopars", runs = 1)
 
 
 
