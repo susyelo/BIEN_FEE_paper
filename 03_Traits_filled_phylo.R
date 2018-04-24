@@ -18,6 +18,7 @@ Trait_BIEN_df$scrubbed_species_binomial<-gsub(" ","_",Trait_BIEN_df$scrubbed_spe
 
 #2. Range maps data
 spPresence<-read.csv("./data/base/BIEN_2_Ranges/presence100km.csv", col.names=c("Species","Y","X"))
+cell_sp_biomes<-readRDS("./outputs/spPresence_biomes_all.rds")
 
 #3. Phylogenetic data
 Seed_phylo<-read.tree("./data/base/big_seed_plant_trees_v0.1/ALLMB.tre")
