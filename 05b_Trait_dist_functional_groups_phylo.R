@@ -196,35 +196,3 @@ Biome_Di_Ri %>%
   xlab("Widespread index")
 dev.off()
   
-
-
-# Add 2d density estimation
-sp<-Biome_Di_Ri %>% 
-  filter(Biome=="Coniferous_Forests") %>% 
-  ggplot(aes(Widespread, DiScale)) +
-  geom_point(color = "lightgray")
-
-sp + geom_density_2d()
-
-# Use different geometry and change the gradient color
-sp + stat_density_2d(aes(fill = ..level..), geom = "polygon") +
-  scale_fill_gradientn(colors = c("#FFEDA0", "#FEB24C", "#F03B20"))
-
-
-
-
-## Ui vs Ri heatmaps
-dir.create("./figs/Ui_Ri_heatmaps/")
-
-foreach (index=1:length(biome_names))%do%{
-  
-  png(paste("./figs/Ui_Ri_heatmaps/Heatmap_", biome_names[index],".png",sep=""))
-  print(Di_Ri_heatmaps(Biome_Di_Ri = Biome_Di_Ri, 
-                       xvar = Biome_Di_Ri$Ri,
-                       yvar = Biome_Di_Ri$UiScale,
-                       xlab = "Ri",
-                       ylab = "Ui",
-                       Biome_toPlot = biome_names[index]))
-  dev.off()
-
-}
