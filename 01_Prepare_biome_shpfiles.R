@@ -48,7 +48,12 @@ biome_NW$biomes[which(biome_NW$WWF_MHTNAM=="Mediterranean Forests, Woodlands and
 biome_NW$biomes[which(biome_NW$WWF_MHTNAM=="Temperate Conifer Forests")]<-"Coniferous_Forests"
 biome_NW$biomes[which(biome_NW$WWF_MHTNAM=="Boreal Forests/Taiga")]<-"Taiga"
 
-# Extract the data you want (the larger geography)
+## Change Chaco and Caatinga classification
+biome_NW$biomes[which(biome_NW$ECO_NAME=="Caatinga")]<-"Dry_Forest"
+biome_NW$biomes[which(biome_NW$ECO_NAME=="Dry Chaco")]<-"Xeric_Woodlands"
+
+
+# Extract the data I want (the larger geography)
 biome_poly <- gUnaryUnion(biome_NW, id = biome_NW@data$biomes)
 
 # And add the data back in
@@ -69,10 +74,11 @@ crs_ref<-crs(total_richness)
 biomes_shp_proj <- spTransform(biome_poly_sub, CRSobj = crs_ref)
 
 biomes_shp_proj$biomes<-factor(biomes_shp_proj$biomes, 
-                               levels=c("Moist_Forest","Savannas","Tropical_Grasslands",
-                                        "Dry_Forest","Xeric_Woodlands","Mediterranean_Woodlands",
-                                        "Temperate_Grasslands", "Coniferous_Forests",
+                               levels=c("Moist_Forest","Dry_Forest","Xeric_Woodlands",
+                                        "Savannas","Tropical_Grasslands", "Coniferous_Forests",
                                         "Temperate_Mixed",
+                                        "Temperate_Grasslands",
+                                        "Mediterranean_Woodlands",
                                         "Taiga","Tundra"))
 
 
@@ -95,7 +101,7 @@ Colours_biomes<-data.frame(biome=levels(biomes_shp_proj$biomes), color=bio_color
 write.csv(Colours_biomes, "./outputs/colours_biomes.csv")
 
 pdf("./figs/Biomes_shpfile1.pdf")
-spplot(biomes_shp_proj,col.regions=bio_colors,
+spplot(biomes_shp_proj,col.regions=cols_wes,
        pretty=T, names.attr=names_tmp)
 dev.off()
 
