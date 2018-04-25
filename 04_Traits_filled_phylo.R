@@ -7,9 +7,12 @@ library(ade4)
 library(visdat)
 library(ggtree)
 library(phytools)
+library(RColorBrewer)
+library(foreach)
 
 # Functions ---------------------------------------------------------------
 source("./functions/tip_accuracy.R")
+source("./functions/BIEN2.0_RangeMaps_functions.R")
 
 # Data --------------------------------------------------------------------
 # 1. Traits data
@@ -17,12 +20,14 @@ Trait_BIEN_df<-read.csv("./data/processed/BIEN_trait_GrowthForm.csv", row.names=
 Trait_BIEN_df$scrubbed_species_binomial<-gsub(" ","_",Trait_BIEN_df$scrubbed_species_binomial)
 
 #2. Range maps data
-spPresence<-read.csv("./data/base/BIEN_2_Ranges/presence100km.csv", col.names=c("Species","Y","X"))
+spPresence<-read.csv("./data/base/BIEN_2_Ranges/presence100km.csv",header = FALSE, col.names=c("Species","Y","X"))
 cell_sp_biomes<-readRDS("./outputs/spPresence_biomes_all.rds")
 
 #3. Phylogenetic data
 Seed_phylo<-read.tree("./data/base/big_seed_plant_trees_v0.1/ALLMB.tre")
 
+#4. Total_richness raster
+r_Total_Rich<-raster("./data/base/BIEN_2_Ranges/richness100km.tif")
 
 # Data filter and selection ----------------------------------------------------------
 # Filter species that have range maps information
@@ -57,6 +62,101 @@ png("./supp_info/Missing_trait_data_phylo.png", width = 1100, height = 800)
 vis_miss(new_data[,-7], sort_miss = TRUE) +
   theme(text = element_text(size=22),
         axis.text.x = element_text(size=16)) 
+dev.off()
+
+
+# Geographic distribution of traits ---------------------------------------
+## Richness map and among biomes
+p<-cell_sp_biomes %>% 
+  group_by(cells) %>% 
+  summarise(Richness=n_distinct(Species), biomes=unique(biomes)) %>% 
+  ggplot(aes(x=reorder(biomes, Richness, FUN=mean), y=Richness)) +
+  geom_boxplot() 
+
+p +  theme(axis.text.x = element_text(angle = 90, hjust = 1))+
+  xlab("Biomes") + ylab("Richness")
+
+## Presence/absence matrix of species
+## Total richness
+spRichness = splistToRichness(spPresence,unique(cell_sp_biomes$Species))
+spRichness[spRichness==0]<-NA
+
+Richness_plot<-spplot(spRichness)
+
+## Richness of species with at least one trait
+spRichness_traits = splistToRichness(spPresence,unique(Trait_BIEN$scrubbed_species_binomial))
+spRichness_traits[spRichness_traits==0]<-NA
+
+Richness_traits_plot<-spplot(spRichness_traits)
+
+## proportion of species with traits
+prop_richnnes<-spRichness_traits/spRichness
+
+my.palette=c('#ffffcc','#c2e699','#78c679','#31a354','#006837')
+spl_tmp<- list("sp.lines", as(biome_shp, "SpatialLines"), col=alpha("dimgrey",0.4))
+
+
+png("./supp_info/Prop_species_traits.png")
+spplot(prop_richnnes,col.regions = my.palette, at = seq(0, 0.5, 0.1), 
+       par.settings = list(fontsize = list(text = 40)),sp.layout=spl_tmp)
+dev.off()
+
+
+## proportion per traits
+
+trait_names<-names(Trait_BIEN)[-1]
+
+prop_Sp_trait_rasters<-foreach(i=1:length(trait_names))%do%{
+  
+  # 1. Extract list of species with available trait info
+  sp_trait<-
+    Trait_BIEN %>% 
+    dplyr::select(scrubbed_species_binomial,mytrait=trait_names[i]) %>% 
+    filter(!is.na(mytrait)) %>% 
+    pull(scrubbed_species_binomial)
+  
+  # 2. Estimate richness per grid cell of species with trait info
+  spRichness_trait = splistToRichness(spPresence,sp_trait)
+  spRichness_trait[spRichness_trait==0]<-NA
+  
+  # 3. Raster with the proportion of species with sampled trait
+  prop_richnnes_trait<-spRichness_trait/spRichness
+  
+  prop_richnnes_trait
+}
+
+names(prop_Sp_trait_rasters)<-trait_names
+
+
+p1<-spplot(prop_Sp_trait_rasters$Leaf_P,col.regions = my.palette,  at = seq(0, 0.5, 0.1),
+       par.settings = list(fontsize = list(text = 35)),sp.layout=spl_tmp,colorkey=FALSE)
+
+p2<-spplot(prop_Sp_trait_rasters$Leaf_N,col.regions = my.palette, at = seq(0, 0.5, 0.1),
+       par.settings = list(fontsize = list(text = 35)),sp.layout=spl_tmp,colorkey=FALSE)
+
+p3<-spplot(prop_Sp_trait_rasters$Wood_density,col.regions = my.palette, at = seq(0, 0.5, 0.1),
+       par.settings = list(fontsize = list(text = 40)),sp.layout=spl_tmp,colorkey=FALSE)
+
+p4<-spplot(prop_Sp_trait_rasters$SLA,col.regions = my.palette,at = seq(0, 0.5, 0.1),
+       par.settings = list(fontsize = list(text = 35)),sp.layout=spl_tmp,colorkey=FALSE)
+
+p5<-spplot(prop_Sp_trait_rasters$Height,col.regions = my.palette, cuts=5, at = seq(0, 0.5, 0.1),
+       par.settings = list(fontsize = list(text = 35)),sp.layout=spl_tmp,colorkey=FALSE)
+
+
+p6 <- c(p1,p2,p3,p4,p5, layout=c(6,1))
+
+png("./supp_info/all_prop_traits.png", width = 1000, height = 400)
+p6
+dev.off()
+
+pdf("./supp_info/all_prop_traits.pdf", width = 12, height = 5)
+p6
+dev.off()
+
+pdf("./supp_info/Prop_species_traits_Seed_mass.pdf")
+spplot(prop_Sp_trait_rasters$Seed_mass,col.regions = my.palette, at = seq(0, 0.5, 0.1),
+           par.settings = list(fontsize = list(text = 35)),sp.layout=spl_tmp)
 dev.off()
 
 ## Calculate lambda for each trait
