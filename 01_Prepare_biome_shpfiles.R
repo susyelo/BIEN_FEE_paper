@@ -49,8 +49,8 @@ biome_NW$biomes[which(biome_NW$WWF_MHTNAM=="Temperate Conifer Forests")]<-"Conif
 biome_NW$biomes[which(biome_NW$WWF_MHTNAM=="Boreal Forests/Taiga")]<-"Taiga"
 
 ## Change Chaco and Caatinga classification
-biome_NW$biomes[which(biome_NW$ECO_NAME=="Caatinga")]<-"Dry_Forest"
-biome_NW$biomes[which(biome_NW$ECO_NAME=="Dry Chaco")]<-"Xeric_Woodlands"
+biome_NW$biomes[grep("Caatinga",biome_NW$ECO_NAME)]<-"Dry_Forest"
+biome_NW$biomes[grep("Chaco",biome_NW$ECO_NAME)]<-"Xeric_Woodlands"
 
 
 # Extract the data I want (the larger geography)
