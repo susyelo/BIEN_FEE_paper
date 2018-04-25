@@ -47,10 +47,13 @@ r_base<-r_Total_Rich
 values(r_base)<-1:ncell(r_base)
 names(r_base)<-"cell"
 
+## convert grids into small polygons
 p <- rasterToPolygons(r_base)
 p<-st_as_sf(p)
 
 
+## Extract the biome classification for each grid cell
+# Also extract the area cover for each biome in each grid cell
 Cells_biomes<-
   foreach(i=1:length(biome_shp$biomes), .combine = rbind)%do%
   
@@ -62,7 +65,6 @@ Cells_biomes<-
     
     int
   }
-
 
 ## Area of a pixel
 area_ref<-st_area(p[1,])
@@ -136,10 +138,14 @@ rownames(spSimilarity)<-names(biome_richness)
 # 4. Chordplot of similarities --------------------------------------------
 
 # 4.1 Species composition among biomes using all the species
-## order by richness 
-indx<-rev(order(diag(spSimilarity)))
-spSimilarity_1<-spSimilarity
-spSimilarity_1<-spSimilarity_1[indx,indx]
+
+biome_order<-c("Moist_Forest","Dry_Forest",
+               "Xeric_Woodlands","Savannas","Tropical_Grasslands",
+               "Coniferous_Forests","Temperate_Mixed","Temperate_Grasslands",
+               "Mediterranean_Woodlands","Taiga","Tundra")
+
+spSimilarity_1<-spSimilarity[biome_order,biome_order]
+
 
 col=c(wes_palette("Darjeeling",6,type="continuous"),
       wes_palette("Cavalcanti",5,type="continuous"))
@@ -187,21 +193,19 @@ spSimilarity_ma<-matrix(data = spSimilarity_Wides$Sp_shared, nrow = n_distinct(s
 rownames(spSimilarity_ma)<-unique(spSimilarity_Wides$from)
 colnames(spSimilarity_ma)<-unique(spSimilarity_Wides$to)
 
+spSimilarity_ma<-spSimilarity_ma[biome_order,biome_order]
+
 ## Print file to include into the supplementary information
 write.csv(spSimilarity_ma,"./supp_info/Shared_species_matrix.csv")
 
 diag(spSimilarity_ma)<-0
 Wides_sp_total<-unlist(lapply(Wides_sp_list,length))
 
-# Order by richness
-indx<-rev(order(Wides_sp_total))
-spSimilarity_ma<-spSimilarity_ma[indx,indx]
-
-colnames(spSimilarity_ma)<-c("Moist","Trop Dry",
-                            "Xeric","Trop Grass",
-                            "Savannas",
-                            "Coniferous","Temp Mixed",
-                            "Temp Grass","Mediterranean","Taiga","Tundra")
+# Rename biomes
+colnames(spSimilarity_ma)<-c("Moist","Dry",
+                             "Xeric","Savannas",
+                             "Trop Grass","Coniferous","Temp Mixed",
+                             "Temp Grass","Mediterranean","Taiga","Tundra")
 
 
 ## Proportion of widespread species
@@ -210,10 +214,10 @@ Wides_sp_total<-unlist(lapply(Wides_sp_list,length))
 prop_widespread<-round(Wides_sp_total/total_n,2)*100
 
 
-colnames(spSimilarity_ma)<-paste(colnames(spSimilarity_ma),", ", prop_widespread[indx],"%", sep="")
+colnames(spSimilarity_ma)<-paste(colnames(spSimilarity_ma),", ", prop_widespread[biome_order],"%", sep="")
 rownames(spSimilarity_ma)<-colnames(spSimilarity_ma)
 
-pdf("./figs/species_composition/Total_similarity_biomes_DominantSp2.pdf",width = 8)
+pdf("./figs/species_composition/Total_similarity_biomes_DominantSp.pdf",width = 8)
 par(mar=c(0, 0, 0, 0))
 chordDiagram(spSimilarity_ma,column.col = col,
              grid.col =col, directional = -1, 
@@ -227,7 +231,6 @@ circos.trackPlotRegion(track.index = 1, panel.fun = function(x, y) {
   circos.text(mean(xlim), ylim[1], sector.name, facing = "clockwise", niceFacing = TRUE, adj = c(0, 0.5), cex=0.8)
 }, bg.border = NA)
 dev.off()
-
 
 
 # 5. Species dissimilarity among biomes --------------------------------------
@@ -262,8 +265,8 @@ Similarity_sp_biomes<-function(sp_list){
 Total_similarity<-Similarity_sp_biomes(Total_sp_list)
 fit_total_sim <-hclust(as.dist(1-Total_similarity))
 
-labels(fit_total_sim)<-c("Xeric", "Trop grass", "Savannas", "Trop Dry", "Moist", "Taiga","Tundra","Mediterranean",
-  "Coniferous","Temp Grass","Temp Mixed")
+labels(fit_total_sim)<-c("Trop grass", "Moist","Savannas", "Trop Dry","Xeric", 
+                         "Taiga","Tundra","Mediterranean","Coniferous","Temp Grass","Temp Mixed")
 
 dend_total<-
   fit_total_sim %>% 
@@ -272,7 +275,7 @@ dend_total<-
   set("branches_lwd", 4)  %>% 
   set("labels_cex", 1.5)
 
-pdf("./figs/species_composition/species_composition_cluster_allsp2.pdf", height = 9.4, width = 9.1)
+pdf("./figs/species_composition/species_composition_cluster_allsp.pdf", height = 9.4, width = 9.1)
 circlize_dendrogram(dend_total,dend_track_height = 0.7,labels_track_height = 0.2)
 dev.off()
 
@@ -284,9 +287,9 @@ fit_Dominant_similarity <-hclust(as.dist(1-Dominant_similarity))
 
 ## Check the order first
 #labels(fit_Dominant_similarity)
-labels(fit_Dominant_similarity)<-c("Taiga","Tundra", "Moist", "Trop grass", 
-                                   "Savannas", "Trop Dry", "Xeric",
-                                   "Coniferous","Mediterranean",
+labels(fit_Dominant_similarity)<-c("Taiga","Tundra","Mediterranean", "Trop grass", 
+                                   "Trop Dry", "Xeric","Moist","Savannas", 
+                                   "Coniferous", 
                                    "Temp Grass","Temp Mixed")
   
 dend_dom<-
@@ -296,6 +299,6 @@ dend_dom<-
   set("branches_lwd", 4) %>% 
   set("labels_cex", 1.5)
 
-pdf("./figs/species_composition/species_composition_cluster_Dominant_sp2.pdf", height = 10, width = 9.1)
+pdf("./figs/species_composition/species_composition_cluster_Dominant_sp.pdf", height = 10, width = 9.1)
 circlize_dendrogram(dend_dom,dend_track_height = 0.7,labels_track_height = 0.2)
 dev.off()
