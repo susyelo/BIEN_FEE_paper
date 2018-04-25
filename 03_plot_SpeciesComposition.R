@@ -217,7 +217,7 @@ prop_widespread<-round(Wides_sp_total/total_n,2)*100
 colnames(spSimilarity_ma)<-paste(colnames(spSimilarity_ma),", ", prop_widespread[biome_order],"%", sep="")
 rownames(spSimilarity_ma)<-colnames(spSimilarity_ma)
 
-pdf("./figs/species_composition/Total_similarity_biomes_DominantSp.pdf",width = 8)
+pdf("./figs/species_composition/Total_similarity_biomes_DominantSp.pdf",width = 8, height = 8)
 par(mar=c(0, 0, 0, 0))
 chordDiagram(spSimilarity_ma,column.col = col,
              grid.col =col, directional = -1, 
