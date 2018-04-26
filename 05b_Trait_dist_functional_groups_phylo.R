@@ -185,14 +185,14 @@ Biome_Di_Ri$Biome<-factor(Biome_Di_Ri$Biome, levels=c("Moist_Forest","Savannas",
                                                        "Taiga","Tundra"))
 
 # Hexagonal binning
-pdf("./figs/Di_Ri_heatmaps/All_biomes_heatmap2.pdf")
+pdf("./figs/Di_Ri_heatmaps/All_biomes_heatmap.pdf")
 Biome_Di_Ri %>% 
   ggplot(aes(Widespread, DiScale)) +
-  stat_binhex(bins=10,aes(fill=log(..count..)))+
+  stat_binhex(bins=20,aes(fill=log(..count..)))+
   scale_fill_gradientn(colours=c("#00AFBB","#FC4E07"),name = "log(Richness)")  +
   theme_minimal()+
   facet_wrap( ~ Biome, ncol = 3)+
   ylab("Distinctiveness")+
-  xlab("Widespread index")
+  xlab("Widespreadness")
 dev.off()
   
