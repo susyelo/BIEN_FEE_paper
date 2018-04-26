@@ -119,7 +119,7 @@ Biomes_hypervolume<-function(biome_dataframe, biome_names){
 ## Ordering traits
 Traits_Biome_Di_Ri<-
   Traits_Biome_Di_Ri %>% 
-  select(species:logWoodDensity,
+  dplyr::select(species:logWoodDensity,
          Scaled_logHeight,Scaled_logWood_density,Scaled_logSeed_mass,
          Scaled_SLA,Scaled_Leaf_N,Scaled_Leaf_P)
 
@@ -194,9 +194,9 @@ dev.off()
 ## With Redundant species
 redun_Sim<-similarity_hypervol(Redun_Wides_hypervol)
 fit_red <-hclust(as.dist(1-redun_Sim))
-labels(fit_red)<-c("Moist","Trop_grass","Dry","Savannas","Taiga",
-                   "Tundra","Xeric_wood","Coniferous","Temp_Mixed",
-                   "Temp_grass","Mediterranean")
+labels(fit_red)<-c("Tundra","Taiga","Coniferous","Temp_Mixed",
+                   "Xeric_wood","Temp_grass","Mediterranean",
+                   "Moist","Trop_grass","Dry","Savannas")
 
 dend_red<-
   fit_red %>% 
@@ -208,7 +208,7 @@ dend_red<-
 Total_Sim<-similarity_hypervol(Total_hypervol)
 fit_total <-hclust(as.dist(1-Total_Sim))
 labels(fit_total)<-c("Moist","Trop_grass","Dry","Savannas","Taiga",
-               "Tundra","Xeric_wood","Mediterranean","Coniferous","Temp_grass","Temp_mixed")
+               "Tundra","Xeric_wood","Mediterranean","Temp_grass","Coniferous","Temp_mixed")
 
 dend_total<-
   fit_total %>% 
@@ -226,7 +226,7 @@ circlize_dendrogram(dend_total,dend_track_height = 0.7,labels_track_height = 0.2
 dev.off()
 
 # Hypervolumes for climatic categories ------------------------------------
-tropical<-c("Moist_Forest","Dry_Forest","Dry_Forest","Tropical_Grasslands","Savannas")
+tropical<-c("Moist_Forest","Dry_Forest","Tropical_Grasslands","Savannas")
 temperate<-c("Temperate_Grasslands","Coniferous_Forests","Temperate_Mixed","Mediterranean_Woodlands")
 cold<-c("Taiga","Tundra")
 
