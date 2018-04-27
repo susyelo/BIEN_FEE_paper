@@ -79,6 +79,8 @@ Traits_Biome_Di_Ri$Biome<-factor(Traits_Biome_Di_Ri$Biome,
 Traits_Biome_Di_Ri$logseed_mass<-log(Traits_Biome_Di_Ri$Seed_mass+1)
 Traits_Biome_Di_Ri$logHeight<-log(Traits_Biome_Di_Ri$Height+1)
 Traits_Biome_Di_Ri$logWoodDensity<-log(Traits_Biome_Di_Ri$Wood_density+1)
+Traits_Biome_Di_Ri$sqrtSLA<-sqrt(Traits_Biome_Di_Ri$SLA)
+
 
 #Selecting and Scalling variables
 Traits_Biome_Di_Ri<-
@@ -86,7 +88,7 @@ Traits_Biome_Di_Ri %>%
   group_by(Biome) %>% 
   mutate(Scaled_logWood_density=scale(logWoodDensity),
          Scaled_Leaf_N=scale(Leaf_N),
-         Scaled_SLA=scale(SLA),
+         Scaled_SLA=scale(sqrtSLA),
          Scaled_Leaf_P=scale(Leaf_P),
          Scaled_logSeed_mass=scale(logseed_mass),
          Scaled_logHeight=scale(logHeight))
