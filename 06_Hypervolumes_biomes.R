@@ -271,6 +271,13 @@ saveRDS(Climatic_hypervol,"./outputs/Climatic_hypervolumes.rds")
 Climatic_Sim<-similarity_hypervol(Climatic_hypervol)
 fit_Climatic <-hclust(as.dist(1-Climatic_Sim))
 
+dend_climatic<-
+  fit_Climatic %>% 
+  as.dendrogram() %>% 
+  color_branches(1,col=wes_palette("Cavalcanti1")[1]) %>% 
+  set("branches_lwd", 4)
+
+
 
 png("./figs/hypervolumes_clusters/Climatic_hypervolumes_total.png",width = 600, height = 600)
 plot(
