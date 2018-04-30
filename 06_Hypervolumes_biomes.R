@@ -68,17 +68,17 @@ Biome_Di_Ri<-read.csv("./outputs/Biome_Di_Ri_phylo.csv", row.names = 1)
 Traits_Biome_Di_Ri<-merge(Biome_Di_Ri,Traits_phylo)
 
 Traits_Biome_Di_Ri$Biome<-factor(Traits_Biome_Di_Ri$Biome, 
-                                 levels=rev(c("Moist_Forest","Savannas","Tropical_Grasslands",
+                                 levels=c("Moist_Forest","Savannas","Tropical_Grasslands",
                                               "Dry_Forest","Xeric_Woodlands","Mediterranean_Woodlands",
                                               "Temperate_Grasslands","Temperate_Mixed","Coniferous_Forests",
-                                              "Taiga","Tundra")))
+                                              "Taiga","Tundra"))
 
 # Calculate hypervolumes -------------------------------
 
 # Transforming and Scaling variables
-Traits_Biome_Di_Ri$logseed_mass<-log(Traits_Biome_Di_Ri$Seed_mass+1)
-Traits_Biome_Di_Ri$logHeight<-log(Traits_Biome_Di_Ri$Height+1)
-Traits_Biome_Di_Ri$logWoodDensity<-log(Traits_Biome_Di_Ri$Wood_density+1)
+Traits_Biome_Di_Ri$logseed_mass<-log(Traits_Biome_Di_Ri$Seed_mass)
+Traits_Biome_Di_Ri$logHeight<-log(Traits_Biome_Di_Ri$Height)
+Traits_Biome_Di_Ri$logWoodDensity<-log(Traits_Biome_Di_Ri$Wood_density)
 Traits_Biome_Di_Ri$sqrtSLA<-sqrt(Traits_Biome_Di_Ri$SLA)
 
 
@@ -94,8 +94,6 @@ Traits_Biome_Di_Ri %>%
          Scaled_logHeight=scale(logHeight))
   
 
-
-
 ## Calculate hypervolumes for each Biome function
 Biomes_hypervolume<-function(biome_dataframe, biome_names){
   
@@ -103,8 +101,7 @@ Biomes_hypervolume<-function(biome_dataframe, biome_names){
     
     biome_df<-
       biome_dataframe %>% 
-      dplyr::filter(Biome==biome_names[i]) %>% 
-      dplyr::select(contains("Scaled"))
+      dplyr::filter(Biome==biome_names[i])
     
     biome_hb<-hypervolume_gaussian(biome_df[,-1],name = as.character(biome_names[i]))
     
@@ -125,18 +122,28 @@ Traits_Biome_Di_Ri<-
          Scaled_logHeight,Scaled_logWood_density,Scaled_logSeed_mass,
          Scaled_SLA,Scaled_Leaf_N,Scaled_Leaf_P)
 
-biome_names<-unique(Traits_Biome_Di_Ri$Biome)
 
-biome_ReduntWides<-
+Total_Biome_Di_Ri<-
   Traits_Biome_Di_Ri %>% 
-  dplyr::filter(Ri<=0.5 & DiScale < 0.2)
+  dplyr::select(Biome,contains("Scaled"))
 
-Redun_Wides_hypervol<-Biomes_hypervolume(biome_ReduntWides,biome_names)
-saveRDS(Redun_Wides_hypervol, "./outputs/ReduntWides_hypervolumes.rds")
+
+Redunt_Biome_Di_Ri<-
+  Traits_Biome_Di_Ri %>% 
+  dplyr::filter(Ri<=0.5 & DiScale < 0.2) %>% 
+  dplyr::select(Biome,contains("Scaled"))
+
+
+biome_names<-levels(Traits_Biome_Di_Ri$Biome)
 
 ## Total hypervolumes
-Total_hypervol<-Biomes_hypervolume(Traits_Biome_Di_Ri,biome_names)
+Total_hypervol<-Biomes_hypervolume(Total_Biome_Di_Ri,biome_names)
 saveRDS(Total_hypervol, "./outputs/Total_hypervolumes.rds")
+
+## hypervolumes widespread and redundant
+Redun_Wides_hypervol<-Biomes_hypervolume(Redunt_Biome_Di_Ri,biome_names)
+saveRDS(Redun_Wides_hypervol, "./outputs/ReduntWides_hypervolumes.rds")
+
 
 ## Plot hypervolumes per category
 png("./figs/hypervolumes_clusters/Total_Moist_Dry_Savanna.png",width = 600, height = 600)
@@ -196,26 +203,29 @@ dev.off()
 ## With Redundant species
 redun_Sim<-similarity_hypervol(Redun_Wides_hypervol)
 fit_red <-hclust(as.dist(1-redun_Sim))
-labels(fit_red)<-c("Tundra","Taiga","Coniferous","Temp_Mixed",
-                   "Xeric_wood","Temp_grass","Mediterranean",
-                   "Moist","Trop_grass","Dry","Savannas")
+labels(fit_red)<-c("Moist","Trop_Grass","Savannas","Dry","Taiga","Tundra",
+                   "Xeric","Temp Mixed","Coniferous",
+                     "Mediterranean","Temp_Grass")
+
 
 dend_red<-
   fit_red %>% 
   as.dendrogram() %>% 
-  color_branches(1,col=wes_palette("Cavalcanti")[3]) %>% 
+  color_branches(1,col=wes_palette("Cavalcanti1")[3]) %>% 
   set("branches_lwd", 4)
 
 ## With the total species
 Total_Sim<-similarity_hypervol(Total_hypervol)
 fit_total <-hclust(as.dist(1-Total_Sim))
-labels(fit_total)<-c("Moist","Trop_grass","Dry","Savannas","Taiga",
-               "Tundra","Xeric_wood","Mediterranean","Temp_grass","Coniferous","Temp_mixed")
+
+labels(fit_total)<-c("Trop_Grass","Moist","Savannas","Dry","Taiga","Tundra","Xeric",
+                     "Mediterranean","Temp_Grass","Temp Mixed","Coniferous")
+
 
 dend_total<-
   fit_total %>% 
   as.dendrogram() %>% 
-  color_branches(1,col=wes_palette("Cavalcanti")[1]) %>% 
+  color_branches(1,col=wes_palette("Cavalcanti1")[1]) %>% 
   set("branches_lwd", 4)
 
 #dir.create("./figs/hypervolumes_clusters")
@@ -248,7 +258,13 @@ Traits_Biome_Di_Ri_tmp<-Traits_Biome_Di_Ri
 Traits_Biome_Di_Ri_tmp$Biome<-Traits_Biome_Di_Ri_tmp$ClimBiomes
 
 biome_names<-unique(Traits_Biome_Di_Ri_tmp$Biome)
-Climatic_hypervol<-Biomes_hypervolume(Traits_Biome_Di_Ri_tmp,biome_names)
+
+
+Climate_Biome_Di_Ri<-
+  Traits_Biome_Di_Ri_tmp %>% 
+  dplyr::select(contains("Scaled"))
+
+Climatic_hypervol<-Biomes_hypervolume(Climate_Biome_Di_Ri,biome_names)
 saveRDS(Climatic_hypervol,"./outputs/Climatic_hypervolumes.rds")
 
 
