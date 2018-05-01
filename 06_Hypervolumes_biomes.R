@@ -10,52 +10,7 @@ library(wesanderson)
 
 # Functions ---------------------------------------------------------------
 source("./functions/BIEN2.0_RangeMaps_functions.R")
-
-similarity_hypervol<-function(list_hyper){
-  
-  choices<-choose(length(names(list_hyper)),2) #x choose 2 possible pairs
-  combs<-combn(length(names(list_hyper)),2) # create those pairs
-  
-  similarity_total<-NULL
-  A<-NULL
-  B<-NULL
-  
-  for(i in 1:choices) {
-    nums<-combs[,i]
-    
-    sim<-
-      hypervolume_overlap_statistics(
-        hypervolume_set(
-          list_hyper[[nums[1]]], 
-          list_hyper[[nums[2]]],
-          check.memory = FALSE
-        )
-      )
-    
-    similarity_total<-rbind(similarity_total,sim)
-    
-    A[i]<-nums[1]
-    B[i]<-nums[2]
-    
-    
-  }
-  
-  Similarity_df<-data.frame(Biome1=names(list_hyper)[A],Biome2=names(list_hyper)[B])
-  Similarity_df<-cbind(Similarity_df,similarity_total)
-  
-  tmp<-matrix(data = NA, nrow = n_distinct(list_hyper), ncol = n_distinct(list_hyper), byrow = FALSE,
-              dimnames = NULL)
-  
-  rownames(tmp)<-names(list_hyper)
-  colnames(tmp)<-names(list_hyper)
-  
-  diag(tmp)<-1
-  
-  tmp[lower.tri(tmp, diag = FALSE)]<-Similarity_df$sorensen
-  
-  return(tmp)  
-}
-
+source("./functions/Biomes_hypervolumes_fun.R")
 
 # data --------------------------------------------------------------------
 # 1. Trait data frame
@@ -64,14 +19,33 @@ Traits_phylo<-read.csv("./data/processed/traits_ALLMB.csv")
 # 2. Values of distinctiveness and Restrictedness for species per biome
 Biome_Di_Ri<-read.csv("./outputs/Biome_Di_Ri_phylo.csv", row.names = 1)
 
-# 3. Merging data frames
+#3. Growth form
+Growth_form<-read.table("./data/base/GrowthForm_Final.txt",header = TRUE)
+Growth_form$SPECIES_STD<-gsub(" ","_",Growth_form$SPECIES_STD)
+
+
+# 4. Merging data frames
 Traits_Biome_Di_Ri<-merge(Biome_Di_Ri,Traits_phylo)
 
+
+## Rename and order biomes
+Traits_Biome_Di_Ri$Biome<-recode(Traits_Biome_Di_Ri$Biome,Moist_Forest="Moist",
+                                     Savannas="Savannas",
+                                     Tropical_Grasslands="Trop_Grass",
+                                     Dry_Forest="Dry",
+                                     Xeric_Woodlands="Xeric",
+                                     Mediterranean_Woodlands="Mediterranean",
+                                     Temperate_Grasslands="Temp_Grass",
+                                     Temperate_Mixed="Temp_Mixed",
+                                     Coniferous_Forests="Coniferous",
+                                     Taiga="Taiga",
+                                     Tundra="Tundra")
+
 Traits_Biome_Di_Ri$Biome<-factor(Traits_Biome_Di_Ri$Biome, 
-                                 levels=c("Moist_Forest","Savannas","Tropical_Grasslands",
-                                              "Dry_Forest","Xeric_Woodlands","Mediterranean_Woodlands",
-                                              "Temperate_Grasslands","Temperate_Mixed","Coniferous_Forests",
-                                              "Taiga","Tundra"))
+                                 levels=c("Moist","Savannas","Trop_Grass",
+                                          "Dry","Xeric","Mediterranean",
+                                          "Temp_Grass","Temp_Mixed","Coniferous",
+                                          "Taiga","Tundra"))
 
 # Calculate hypervolumes -------------------------------
 
@@ -80,7 +54,6 @@ Traits_Biome_Di_Ri$logseed_mass<-log(Traits_Biome_Di_Ri$Seed_mass)
 Traits_Biome_Di_Ri$logHeight<-log(Traits_Biome_Di_Ri$Height)
 Traits_Biome_Di_Ri$logWoodDensity<-log(Traits_Biome_Di_Ri$Wood_density)
 Traits_Biome_Di_Ri$sqrtSLA<-sqrt(Traits_Biome_Di_Ri$SLA)
-
 
 #Selecting and Scalling variables
 Traits_Biome_Di_Ri<-
@@ -94,54 +67,25 @@ Traits_Biome_Di_Ri %>%
          Scaled_logHeight=scale(logHeight))
   
 
-## Calculate hypervolumes for each Biome function
-Biomes_hypervolume<-function(biome_dataframe, biome_names){
-  
-  hyper_list<-foreach(i=seq_along(biome_names))%do%{
-    
-    biome_df<-
-      biome_dataframe %>% 
-      dplyr::filter(Biome==biome_names[i])
-    
-    biome_hb<-hypervolume_gaussian(biome_df[,-1],name = as.character(biome_names[i]))
-    
-    biome_hb
-  }
-  
-  names(hyper_list)<-biome_names
-  hyper_list
-}
-
-
 # Redundant and widespread species hypervolumes ---------------------------
-
 ## Ordering traits
-Traits_Biome_Di_Ri<-
-  Traits_Biome_Di_Ri %>% 
-  dplyr::select(species:logWoodDensity,
-         Scaled_logHeight,Scaled_logWood_density,Scaled_logSeed_mass,
-         Scaled_SLA,Scaled_Leaf_N,Scaled_Leaf_P)
-
-
-Total_Biome_Di_Ri<-
-  Traits_Biome_Di_Ri %>% 
-  dplyr::select(Biome,contains("Scaled"))
-
-
-Redunt_Biome_Di_Ri<-
-  Traits_Biome_Di_Ri %>% 
-  dplyr::filter(Ri<=0.5 & DiScale < 0.2) %>% 
-  dplyr::select(Biome,contains("Scaled"))
-
-
 biome_names<-levels(Traits_Biome_Di_Ri$Biome)
 
-## Total hypervolumes
-Total_hypervol<-Biomes_hypervolume(Total_Biome_Di_Ri,biome_names)
+## Hypervolumes for all species
+Total_hypervol<-
+  Traits_Biome_Di_Ri %>% 
+  dplyr::select(Biome,contains("Scaled")) %>% 
+  Biomes_hypervolume(., biome_names)
+
 saveRDS(Total_hypervol, "./outputs/Total_hypervolumes.rds")
 
-## hypervolumes widespread and redundant
-Redun_Wides_hypervol<-Biomes_hypervolume(Redunt_Biome_Di_Ri,biome_names)
+## Hypervolumes for widespread and redundant species 
+Redun_Wides_hypervol<-
+  Traits_Biome_Di_Ri %>% 
+  dplyr::filter(Ri<=0.5 & DiScale < 0.2) %>% 
+  dplyr::select(Biome,contains("Scaled")) %>% 
+  Biomes_hypervolume(biome_names)
+
 saveRDS(Redun_Wides_hypervol, "./outputs/ReduntWides_hypervolumes.rds")
 
 
@@ -203,16 +147,15 @@ dev.off()
 ## With Redundant species
 redun_Sim<-similarity_hypervol(Redun_Wides_hypervol)
 fit_red <-hclust(as.dist(1-redun_Sim))
-labels(fit_red)<-c("Moist","Trop_Grass","Savannas","Dry","Taiga","Tundra",
-                   "Xeric","Temp Mixed","Coniferous",
-                     "Mediterranean","Temp_Grass")
 
 
 dend_red<-
   fit_red %>% 
   as.dendrogram() %>% 
   color_branches(1,col=wes_palette("Cavalcanti1")[3]) %>% 
-  set("branches_lwd", 4)
+  set("branches_lwd", 4) %>% 
+  set("labels_cex", 1.5)
+
 
 ## With the total species
 Total_Sim<-similarity_hypervol(Total_hypervol)
@@ -221,12 +164,13 @@ fit_total <-hclust(as.dist(1-Total_Sim))
 labels(fit_total)<-c("Trop_Grass","Moist","Savannas","Dry","Taiga","Tundra","Xeric",
                      "Mediterranean","Temp_Grass","Temp Mixed","Coniferous")
 
-
 dend_total<-
   fit_total %>% 
   as.dendrogram() %>% 
   color_branches(1,col=wes_palette("Cavalcanti1")[1]) %>% 
-  set("branches_lwd", 4)
+  set("branches_lwd", 4) %>% 
+  set("labels_cex", 1.5)
+
 
 #dir.create("./figs/hypervolumes_clusters")
 pdf("./figs/hypervolumes_clusters/Redundant_Sorensen.pdf", height = 9.4, width = 9.1)
@@ -294,3 +238,9 @@ plot(
   show.random=FALSE
 )
 dev.off()
+
+### Hypervolumes for Dominant growth forms
+
+
+
+
