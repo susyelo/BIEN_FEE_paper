@@ -23,12 +23,41 @@ Biome_Di_Ri<-read.csv("./outputs/Biome_Di_Ri_phylo.csv", row.names = 1)
 Growth_form<-read.table("./data/base/GrowthForm_Final.txt",header = TRUE)
 Growth_form$SPECIES_STD<-gsub(" ","_",Growth_form$SPECIES_STD)
 
+# 4. Grasses_information
+family_info<-read.csv("./data/base/family_completed.csv", row.names = 1)
+family_info$species<-gsub(" ","_",family_info$species)
+grass_families<-read.csv("./data/base/Grass_and_GrassLike_families.csv")
 
-# 4. Merging data frames
+# Data manipulation -------------------------------------------------------
+# 1. Merging data frames
 Traits_Biome_Di_Ri<-merge(Biome_Di_Ri,Traits_phylo)
 
+# 2. Include Growth form and grasses information
+indx<-match(Traits_Biome_Di_Ri$species,Growth_form$SPECIES_STD)
+Traits_Biome_Di_Ri$GROWTHFORM_STD<-Growth_form$GROWTHFORM_STD[indx]
 
-## Rename and order biomes
+# 3. Include Grasses information
+indx<-match(Traits_Biome_Di_Ri$species,family_info$species)
+Traits_Biome_Di_Ri$Family<-family_info$family[indx]
+
+grasses<-unique(grass_families$Family)
+Traits_Biome_Di_Ri$GROWTHFORM_STD<-as.character(Traits_Biome_Di_Ri$GROWTHFORM_STD)
+Traits_Biome_Di_Ri$GROWTHFORM_STD[which(Traits_Biome_Di_Ri$Family%in%grasses)]<-"Grass"
+
+# Include the following into the "hebs" category
+joinGF<-c("Vine","Liana","Non-woody epiphyte","Aquatic","Parasite")
+Traits_Biome_Di_Ri$GROWTHFORM_STD[which(Traits_Biome_Di_Ri$GROWTHFORM_STD%in%joinGF)]<-"Herb"
+Traits_Biome_Di_Ri$GROWTHFORM_STD<-as.factor(Traits_Biome_Di_Ri$GROWTHFORM_STD)
+
+## 4.Reorder growth form levels
+Traits_Biome_Di_Ri$GROWTHFORM_STD<-as.character(Traits_Biome_Di_Ri$GROWTHFORM_STD)
+Traits_Biome_Di_Ri$GROWTHFORM_STD[is.na(Traits_Biome_Di_Ri$GROWTHFORM_STD)]<-"Unknown"
+
+Traits_Biome_Di_Ri$GROWTHFORM_STD<-factor(Traits_Biome_Di_Ri$GROWTHFORM_STD,
+                                          levels=c("Tree","Shrub","Herb",
+                                                   "Grass","Unknown"))
+
+## 3. Rename and order biomes
 Traits_Biome_Di_Ri$Biome<-recode(Traits_Biome_Di_Ri$Biome,Moist_Forest="Moist",
                                      Savannas="Savannas",
                                      Tropical_Grasslands="Trop_Grass",
@@ -59,12 +88,13 @@ Traits_Biome_Di_Ri$sqrtSLA<-sqrt(Traits_Biome_Di_Ri$SLA)
 Traits_Biome_Di_Ri<-
 Traits_Biome_Di_Ri %>% 
   group_by(Biome) %>% 
-  mutate(Scaled_logWood_density=scale(logWoodDensity),
-         Scaled_Leaf_N=scale(Leaf_N),
+  mutate(Scaled_logSeed_mass=scale(logseed_mass),
+         Scaled_logHeight=scale(logHeight),
          Scaled_SLA=scale(sqrtSLA),
-         Scaled_Leaf_P=scale(Leaf_P),
-         Scaled_logSeed_mass=scale(logseed_mass),
-         Scaled_logHeight=scale(logHeight))
+         Scaled_logWood_density=scale(logWoodDensity),
+         Scaled_Leaf_N=scale(Leaf_N),
+         Scaled_Leaf_P=scale(Leaf_P)
+  )
   
 
 # Redundant and widespread species hypervolumes ---------------------------
@@ -87,6 +117,19 @@ Redun_Wides_hypervol<-
   Biomes_hypervolume(biome_names)
 
 saveRDS(Redun_Wides_hypervol, "./outputs/ReduntWides_hypervolumes.rds")
+
+plot(
+  hypervolume_join(
+    Redun_Wides_hypervol$Moist, 
+    Redun_Wides_hypervol$Coniferous,
+    Redun_Wides_hypervol$Taiga
+  ),
+  colors=c(brewer.pal(n=4,"Set1")),
+  show.legend=TRUE,
+  show.random=FALSE,
+  show.3d=TRUE
+)
+
 
 
 ## Plot hypervolumes per category
@@ -239,8 +282,114 @@ plot(
 )
 dev.off()
 
-### Hypervolumes for Dominant growth forms
+### Hypervolumes for Dominant growth forms -----
+
+# Extract dominant growth forms per biome ---------------------------------
+Traits_Biome_Di_Ri$Biome<-factor(Traits_Biome_Di_Ri$Biome, 
+                                 levels=rev(c("Moist","Savannas","Trop_Grass",
+                                          "Dry","Xeric","Mediterranean",
+                                          "Temp_Grass","Temp_Mixed","Coniferous",
+                                          "Taiga","Tundra")))
+
+biome_name<-unique(Traits_Biome_Di_Ri$Biome)
+
+Total_GF<-
+  foreach(i=1:length(biome_name), .combine = rbind) %do%{
+    a<-Traits_Biome_Di_Ri %>% 
+      filter(Biome==biome_name[i]) %>% 
+      group_by(GROWTHFORM_STD) %>% 
+      dplyr::summarise(N_sp=length(GROWTHFORM_STD)) %>% 
+      mutate(Dist="Total_prop",Biome=biome_name[i],prop=round(N_sp/sum(N_sp)*100,1)) %>% 
+      filter(prop > 1)
+  }
+
+#Using the ScaleUi values produced the same results as the ScaleDi
+RedWides_GF<-
+  foreach(i=1:length(biome_name), .combine = rbind) %do%{
+    a<-Traits_Biome_Di_Ri %>% 
+      filter(Biome==biome_name[i]) %>% 
+      filter(Ri<=0.5 & DiScale < 0.2) %>% 
+      group_by(GROWTHFORM_STD) %>% 
+      dplyr::summarise(N_sp=length(GROWTHFORM_STD)) %>% 
+      mutate(Dist="Redun_wides",Biome=biome_name[i],prop=round(N_sp/sum(N_sp)*100,1)) %>% 
+      filter(prop > 2.1)
+  }
+
+Total_GF$Tmnt<-"Total"
+RedWides_GF$Tmnt<-"RedWid"
+
+new_df<-rbind(Total_GF,RedWides_GF)
+col_GF<-c(wes_palette("Cavalcanti")[c(2:4,1)],"grey")
+
+png("./figs/Growth_forms/Total_vs_redundant_species.png", width = 800, height = 500)
+ggplot(data = new_df, 
+       mapping = aes(x = Biome, fill = GROWTHFORM_STD, 
+                     y = ifelse(test = Tmnt == "Total", 
+                                yes = -prop, no = prop))) +
+  geom_bar(stat = "identity") +
+  scale_y_continuous(labels = abs) +
+  scale_fill_manual(values=col_GF,name = "Growth form")+
+  labs(y = "%",x="") +
+  coord_flip()+
+  geom_hline(yintercept=0)+
+  theme(axis.text.y = element_text(size = rel(1.5)),
+        axis.text.x = element_text(size = rel(1.5)),
+        axis.title.x = element_text(size = rel(1.5)))
+dev.off()
 
 
+## Hypervolumes for dominant forms
+Traits_Biome_Di_Ri<-as.data.frame(Traits_Biome_Di_Ri)
 
+Dom_growth_forms<-list(Moist=c("Tree"),
+                       Savannas=c("Tree","Grass"),
+                       Trop_Grass=c("Grass"),
+                       Dry=c("Tree"),
+                       Xeric=c("Shrub","Tree"),
+                       Temp_Mixed=c("Tree"),
+                       Coniferous=c("Tree"),
+                       Temp_Grass=c("Grass"),
+                       Mediterranean=c("Shrub","Tree"),
+                       Taiga=c("Tree"),
+                       Tundra=c("Herb","Grass"))
+
+
+Dom_GF_hypervolumes<-
+  foreach(i=1:length(names(Dom_growth_forms)))%do%{
+    
+    print(names(Dom_growth_forms)[i])
+    Traits_Biome_Di_Ri %>% 
+      filter(Biome==names(Dom_growth_forms)[i] & GROWTHFORM_STD%in%Dom_growth_forms[[i]]) %>% 
+      dplyr::select(contains("Scaled")) %>% 
+      hypervolume_box(name = names(Dom_growth_forms)[i])
+    
+  }
+
+names(Dom_GF_hypervolumes)<-names(Dom_growth_forms)
+
+plot(
+  hypervolume_join(
+    Dom_GF_hypervolumes$Temp_Grass, 
+    Dom_GF_hypervolumes$Trop_Grass,
+    Dom_GF_hypervolumes$Tundra
+  ),
+  contour.lwd=1.5,
+  colors=c(brewer.pal(n=4,"Set1")),
+  show.legend=TRUE,
+  show.random=FALSE,
+  show.3d=TRUE
+)
+
+plot(
+  hypervolume_join(
+    Dom_GF_hypervolumes$Moist, 
+    Dom_GF_hypervolumes$Coniferous,
+    Dom_GF_hypervolumes$Temp_Mixed,
+    Dom_GF_hypervolumes$Taiga
+  ),
+  contour.lwd=1.5,
+  colors=c(brewer.pal(n=4,"Set1")),
+  show.legend=TRUE,
+  show.random=FALSE
+)
 

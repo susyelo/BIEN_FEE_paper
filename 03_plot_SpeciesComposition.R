@@ -265,8 +265,8 @@ Similarity_sp_biomes<-function(sp_list){
 Total_similarity<-Similarity_sp_biomes(Total_sp_list)
 fit_total_sim <-hclust(as.dist(1-Total_similarity))
 
-labels(fit_total_sim)<-c("Trop grass", "Moist","Savannas", "Trop Dry","Xeric", 
-                         "Taiga","Tundra","Mediterranean","Coniferous","Temp Grass","Temp Mixed")
+labels(fit_total_sim)<-c("Trop_Grass", "Moist","Savannas", "Dry","Xeric", 
+                         "Taiga","Tundra","Mediterranean","Coniferous","Temp_Grass","Temp_Mixed")
 
 dend_total<-
   fit_total_sim %>% 
