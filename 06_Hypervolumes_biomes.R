@@ -189,6 +189,7 @@ dev.off()
 ## Calculate Hypervolume similarity using Sorense's index -----
 ## With Redundant species
 redun_Sim<-similarity_hypervol(Redun_Wides_hypervol)
+#saveRDS(redun_Sim, "./outputs/Redunt_similarity_hypervolumes.rds")
 fit_red <-hclust(as.dist(1-redun_Sim))
 
 
@@ -202,10 +203,8 @@ dend_red<-
 
 ## With the total species
 Total_Sim<-similarity_hypervol(Total_hypervol)
+#saveRDS(Total_Sim, "./outputs/Total_similarity_hypervolumes.rds")
 fit_total <-hclust(as.dist(1-Total_Sim))
-
-labels(fit_total)<-c("Trop_Grass","Moist","Savannas","Dry","Taiga","Tundra","Xeric",
-                     "Mediterranean","Temp_Grass","Temp Mixed","Coniferous")
 
 dend_total<-
   fit_total %>% 
@@ -366,6 +365,8 @@ Dom_GF_hypervolumes<-
   }
 
 names(Dom_GF_hypervolumes)<-names(Dom_growth_forms)
+saveRDS(Dom_GF_hypervolumes, "./outputs/Dom_growth_forms.rds")
+
 
 plot(
   hypervolume_join(
@@ -392,4 +393,143 @@ plot(
   show.legend=TRUE,
   show.random=FALSE
 )
+
+plot(
+  hypervolume_join(
+    Dom_GF_hypervolumes$Moist, 
+    Dom_GF_hypervolumes$Coniferous,
+    Dom_GF_hypervolumes$Temp_Mixed,
+    Dom_GF_hypervolumes$Taiga
+  ),
+  contour.lwd=1.5,
+  colors=c(brewer.pal(n=4,"Set1")),
+  show.legend=TRUE,
+  show.random=FALSE,
+  show.3d=TRUE
+)
+
+
+Dom_GF_Sim<-similarity_hypervol(Dom_GF_hypervolumes)
+#saveRDS(redun_Sim, "./outputs/Redunt_similarity_hypervolumes.rds")
+fit_DomGF <-hclust(as.dist(1-Dom_GF_Sim))
+
+
+dend_DomGF<-
+  fit_DomGF %>% 
+  as.dendrogram() %>% 
+  color_branches(1,col=wes_palette("Cavalcanti1")[3]) %>% 
+  set("branches_lwd", 4) %>% 
+  set("labels_cex", 1.5)
+
+circlize_dendrogram(dend_DomGF,dend_track_height = 0.7,labels_track_height = 0.2)
+
+
+## Hypervolumes per growth forms
+biomes_names<-levels(Traits_Biome_Di_Ri$Biome)
+
+Tree_hypervolumes<-
+  foreach(i=1:length(biomes_names))%do%{
+    
+    print(biomes_names[i])
+    Traits_Biome_Di_Ri %>% 
+      filter(Biome==biomes_names[i] & GROWTHFORM_STD=="Tree") %>% 
+      dplyr::select(contains("Scaled")) %>% 
+      hypervolume_box(name = biomes_names[i])
+    
+  }
+
+names(Tree_hypervolumes)<-biomes_names
+
+Shrub_hypervolumes<-
+  foreach(i=1:length(biomes_names))%do%{
+    
+    print(biomes_names[i])
+    Traits_Biome_Di_Ri %>% 
+      filter(Biome==biomes_names[i] & GROWTHFORM_STD=="Shrub") %>% 
+      dplyr::select(contains("Scaled")) %>% 
+      hypervolume_box(name = biomes_names[i])
+    
+  }
+names(Shrub_hypervolumes)<-biomes_names
+
+
+Herb_hypervolumes<-
+  foreach(i=1:length(biomes_names))%do%{
+    
+    print(biomes_names[i])
+    Traits_Biome_Di_Ri %>% 
+      filter(Biome==biomes_names[i] & GROWTHFORM_STD=="Herb") %>% 
+      dplyr::select(contains("Scaled"),-Scaled_logWood_density) %>% 
+      hypervolume_box(name = biomes_names[i])
+    
+  }
+names(Herb_hypervolumes)<-biomes_names
+
+
+Grass_hypervolumes<-
+  foreach(i=1:length(biomes_names))%do%{
+    
+    print(biomes_names[i])
+    Traits_Biome_Di_Ri %>% 
+      filter(Biome==biomes_names[i] & GROWTHFORM_STD=="Grass") %>% 
+      dplyr::select(contains("Scaled"),-Scaled_logWood_density) %>% 
+      hypervolume_box(name = biomes_names[i])
+    
+  }
+names(Grass_hypervolumes)<-biomes_names
+
+plot(
+  hypervolume_join(
+    Tree_hypervolumes$Moist, 
+    Tree_hypervolumes$Coniferous,
+    Tree_hypervolumes$Temp_Mixed,
+    Tree_hypervolumes$Taiga
+  ),
+  contour.lwd=1.5,
+  colors=c(brewer.pal(n=4,"Set1")),
+  show.legend=TRUE,
+  show.random=FALSE
+)
+
+plot(
+  hypervolume_join(
+    Shrub_hypervolumes$Xeric, 
+    Shrub_hypervolumes$Mediterranean,
+    Shrub_hypervolumes$Tundra
+  ),
+  contour.lwd=1.5,
+  colors=c(brewer.pal(n=4,"Set1")),
+  show.legend=TRUE,
+  show.random=FALSE
+)
+
+plot(
+  hypervolume_join(
+    Shrub_hypervolumes$Dry, 
+    Shrub_hypervolumes$Xeric,
+    Shrub_hypervolumes$Mediterranean
+  ),
+  contour.lwd=1.5,
+  colors=c(brewer.pal(n=4,"Set1")),
+  show.legend=TRUE,
+  show.random=FALSE
+)
+
+
+plot(
+  hypervolume_join(
+    Grass_hypervolumes$Trop_Grass,
+    Grass_hypervolumes$Temp_Grass,
+    Grass_hypervolumes$Tundra
+  ),
+  contour.lwd=1.5,
+  colors=c(brewer.pal(n=4,"Set1")),
+  show.legend=TRUE,
+  show.random=FALSE
+)
+
+
+biomes<-c("Moist","Temp_Mixed")
+
+ 
 
