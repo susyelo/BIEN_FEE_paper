@@ -1,3 +1,23 @@
+## Calculate hypervolumes for each Biome function
+Biomes_hypervolume<-function(biome_dataframe, biome_names){
+  
+  require(foreach)
+  hyper_list<-foreach(i=seq_along(biome_names))%do%{
+    
+    biome_df<-
+      biome_dataframe %>% 
+      dplyr::filter(Biome==biome_names[i])
+    
+    biome_hb<-hypervolume_gaussian(biome_df[,-1],name = as.character(biome_names[i]))
+    
+    biome_hb
+  }
+  
+  names(hyper_list)<-biome_names
+  hyper_list
+}
+
+## Sorensen similarity of a list of hypervolumes
 similarity_hypervol<-function(list_hyper){
   
   choices<-choose(length(names(list_hyper)),2) #x choose 2 possible pairs
@@ -44,21 +64,3 @@ similarity_hypervol<-function(list_hyper){
 }
 
 
-## Calculate hypervolumes for each Biome function
-Biomes_hypervolume<-function(biome_dataframe, biome_names){
-  
-  require(foreach)
-  hyper_list<-foreach(i=seq_along(biome_names))%do%{
-    
-    biome_df<-
-      biome_dataframe %>% 
-      dplyr::filter(Biome==biome_names[i])
-    
-    biome_hb<-hypervolume_gaussian(biome_df[,-1],name = as.character(biome_names[i]))
-    
-    biome_hb
-  }
-  
-  names(hyper_list)<-biome_names
-  hyper_list
-}

@@ -192,7 +192,6 @@ redun_Sim<-similarity_hypervol(Redun_Wides_hypervol)
 #saveRDS(redun_Sim, "./outputs/Redunt_similarity_hypervolumes.rds")
 fit_red <-hclust(as.dist(1-redun_Sim))
 
-
 dend_red<-
   fit_red %>% 
   as.dendrogram() %>% 
@@ -215,7 +214,7 @@ dend_total<-
 
 
 #dir.create("./figs/hypervolumes_clusters")
-pdf("./figs/hypervolumes_clusters/Redundant_Sorensen.pdf", height = 9.4, width = 9.1)
+pdf("./figs/hypervolumes_clusters/Redundant_Sorensen.pdf", height = 9.7, width = 9.6)
 circlize_dendrogram(dend_red,dend_track_height = 0.7,labels_track_height = 0.2)
 dev.off()
 

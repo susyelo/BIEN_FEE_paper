@@ -275,7 +275,7 @@ dend_total<-
   set("branches_lwd", 4)  %>% 
   set("labels_cex", 1.5)
 
-pdf("./figs/species_composition/species_composition_cluster_allsp.pdf", height = 9.4, width = 9.1)
+pdf("./figs/species_composition/species_composition_cluster_allsp.pdf", height = 9.7, width = 9.6)
 circlize_dendrogram(dend_total,dend_track_height = 0.7,labels_track_height = 0.2)
 dev.off()
 
