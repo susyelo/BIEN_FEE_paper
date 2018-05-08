@@ -1,8 +1,11 @@
 ## Calculate hypervolumes for each Biome function
 Biomes_hypervolume<-function(biome_dataframe, biome_names){
   
+  
   require(foreach)
   hyper_list<-foreach(i=seq_along(biome_names))%do%{
+    
+    print(paste("Estimating the hypervolume of",biome_names[i]))
     
     biome_df<-
       biome_dataframe %>% 

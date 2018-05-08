@@ -81,7 +81,12 @@ Biomes_pabs_sp[which(Biomes_pabs_sp>0)]<-1
 rownames(Traits_phylo)<-Traits_phylo$species
 
 # Select traits to calculate the distances among species
-traits<-c("Wood_density","Leaf_N","SLA","Seed_mass","Height","Leaf_P")
+Traits_phylo$logseed_mass<-log(Traits_phylo$Seed_mass)
+Traits_phylo$logHeight<-log(Traits_phylo$Height)
+Traits_phylo$logWoodDensity<-log(Traits_phylo$Wood_density)
+Traits_phylo$sqrtSLA<-sqrt(Traits_phylo$SLA)
+
+traits<-c("logWoodDensity","Leaf_N","sqrtSLA","logseed_mass","logHeight","Leaf_P")
 
 Dist_matrix<-compute_dist_matrix(Traits_phylo[,traits],metric="euclidean",
                                  center = TRUE,
@@ -185,7 +190,7 @@ Biome_Di_Ri$Biome<-factor(Biome_Di_Ri$Biome, levels=c("Moist_Forest","Savannas",
                                                        "Taiga","Tundra"))
 
 # Hexagonal binning
-pdf("./figs/Di_Ri_heatmaps/All_biomes_heatmap.pdf")
+pdf("./figs/Di_Ri_heatmaps/All_biomes_heatmap_logTraits.pdf")
 Biome_Di_Ri %>% 
   ggplot(aes(Widespread, DiScale)) +
   stat_binhex(bins=20,aes(fill=log(..count..)))+

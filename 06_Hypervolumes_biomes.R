@@ -162,8 +162,8 @@ dev.off()
 png("./figs/hypervolumes_clusters/RedWides_Moist_Dry_Savanna.png",width = 600, height = 600)
 plot(
   hypervolume_join(
-    Redun_Wides_hypervol$Moist_Forest, 
-    Redun_Wides_hypervol$Dry_Forest,
+    Redun_Wides_hypervol$Moist, 
+    Redun_Wides_hypervol$Dry,
     Redun_Wides_hypervol$Savannas
   ),
   contour.lwd=1.5,
@@ -175,9 +175,9 @@ dev.off()
 png("./figs/hypervolumes_clusters/RedWides_Moist_Temperated_Mixed_Conifers.png",width = 600, height = 600)
 plot(
   hypervolume_join(
-    Redun_Wides_hypervol$Moist_Forest, 
-    Redun_Wides_hypervol$Temperate_Mixed,
-    Redun_Wides_hypervol$Coniferous_Forests
+    Redun_Wides_hypervol$Moist, 
+    Redun_Wides_hypervol$Temp_Mixed,
+    Redun_Wides_hypervol$Coniferous
   ),
   contour.lwd=1.5,
   colors=c(brewer.pal(n=3,"Set1")),
