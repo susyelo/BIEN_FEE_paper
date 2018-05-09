@@ -137,6 +137,8 @@ Biomes_ui_clean<-do.call(rbind.data.frame, Biomes_ui)
 Biomes_ui_clean$Biome<-gsub('[0-9]+', '', rownames(Biomes_ui_clean))
 Biomes_ui_clean$Biome<-gsub('\\.', '', Biomes_ui_clean$Biome)
 
+# Compute total functional Uniqueness ----------------------------
+Total_uniqueness<-uniqueness(spMatrix_sub, Dist_matrix)
 
 biome_names=biome_shp$biomes
 # Compute functional restrictiness per biome ----------------------------
