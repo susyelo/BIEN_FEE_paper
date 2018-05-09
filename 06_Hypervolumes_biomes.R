@@ -112,11 +112,11 @@ saveRDS(Total_hypervol, "./outputs/Total_hypervolumes.rds")
 ## Hypervolumes for widespread and redundant species 
 Redun_Wides_hypervol<-
   Traits_Biome_Di_Ri %>% 
-  dplyr::filter(Ri<=0.5 & DiScale < 0.2) %>% 
+  dplyr::filter(DiScale < 0.25) %>% 
   dplyr::select(Biome,contains("Scaled")) %>% 
   Biomes_hypervolume(biome_names)
 
-saveRDS(Redun_Wides_hypervol, "./outputs/ReduntWides_hypervolumes.rds")
+saveRDS(Redun_Wides_hypervol, "./outputs/ReduntWides_hypervolumes_only_redundant.rds")
 
 plot(
   hypervolume_join(
@@ -296,9 +296,8 @@ Total_GF<-
     a<-Traits_Biome_Di_Ri %>% 
       filter(Biome==biome_name[i]) %>% 
       group_by(GROWTHFORM_STD) %>% 
-      dplyr::summarise(N_sp=length(GROWTHFORM_STD)) %>% 
-      mutate(Dist="Total_prop",Biome=biome_name[i],prop=round(N_sp/sum(N_sp)*100,1)) %>% 
-      filter(prop > 1)
+      dplyr::summarise(N_sp=length(species)) %>% 
+      mutate(Dist="Total_prop",Biome=biome_name[i],prop=round(N_sp/sum(N_sp)*100,1))
   }
 
 #Using the ScaleUi values produced the same results as the ScaleDi
@@ -306,20 +305,19 @@ RedWides_GF<-
   foreach(i=1:length(biome_name), .combine = rbind) %do%{
     a<-Traits_Biome_Di_Ri %>% 
       filter(Biome==biome_name[i]) %>% 
-      filter(Ri<=0.5 & DiScale < 0.2) %>% 
+      filter(DiScale < 0.50 & Widespread > 0.75) %>% 
       group_by(GROWTHFORM_STD) %>% 
-      dplyr::summarise(N_sp=length(GROWTHFORM_STD)) %>% 
-      mutate(Dist="Redun_wides",Biome=biome_name[i],prop=round(N_sp/sum(N_sp)*100,1)) %>% 
-      filter(prop > 2.1)
+      dplyr::summarise(N_sp=length(species)) %>% 
+      mutate(Dist="Redun_wides",Biome=biome_name[i],prop=round(N_sp/sum(N_sp)*100,1))
   }
 
 Total_GF$Tmnt<-"Total"
 RedWides_GF$Tmnt<-"RedWid"
 
 new_df<-rbind(Total_GF,RedWides_GF)
-col_GF<-c(wes_palette("Cavalcanti")[c(2:4,1)],"grey")
+col_GF<-c(wes_palette("Cavalcanti1")[c(2:4,1)],"grey")
 
-png("./figs/Growth_forms/Total_vs_redundant_species.png", width = 800, height = 500)
+png("./figs/Growth_forms/Total_vs_redundant_species_Wid75_Dist50.png", width = 800, height = 500)
 ggplot(data = new_df, 
        mapping = aes(x = Biome, fill = GROWTHFORM_STD, 
                      y = ifelse(test = Tmnt == "Total", 
