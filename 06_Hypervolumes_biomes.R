@@ -112,11 +112,11 @@ saveRDS(Total_hypervol, "./outputs/Total_hypervolumes.rds")
 ## Hypervolumes for widespread and redundant species 
 Redun_Wides_hypervol<-
   Traits_Biome_Di_Ri %>% 
-  dplyr::filter(DiScale < 0.25) %>% 
+  dplyr::filter(Widespread > 0.5 & DiScale < 0.5) %>% 
   dplyr::select(Biome,contains("Scaled")) %>% 
   Biomes_hypervolume(biome_names)
 
-saveRDS(Redun_Wides_hypervol, "./outputs/ReduntWides_hypervolumes_only_redundant.rds")
+saveRDS(Redun_Wides_hypervol, "./outputs/ReduntWides_hypervolumes_Wides0.5_Di0.5.rds")
 
 plot(
   hypervolume_join(

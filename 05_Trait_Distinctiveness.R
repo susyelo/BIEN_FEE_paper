@@ -138,7 +138,14 @@ Biomes_ui_clean$Biome<-gsub('[0-9]+', '', rownames(Biomes_ui_clean))
 Biomes_ui_clean$Biome<-gsub('\\.', '', Biomes_ui_clean$Biome)
 
 # Compute total functional Uniqueness ----------------------------
-Total_uniqueness<-uniqueness(spMatrix_sub, Dist_matrix)
+Total_uniqueness<-uniqueness(spMatrix_sub, spMatrix_sub)
+
+Biomes_di_clean_unique<-merge(Total_uniqueness, Biomes_di_clean)
+
+Biomes_di_clean_unique %>% 
+  ggplot(aes(x=Biome, y=Ui)) +
+  geom_boxplot()
+
 
 biome_names=biome_shp$biomes
 # Compute functional restrictiness per biome ----------------------------
