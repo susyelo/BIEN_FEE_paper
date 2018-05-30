@@ -158,7 +158,7 @@ dend_total<-
   set("branches_lwd", 4) %>% 
   set("labels_cex", 1.5)
 
-pdf("./figs/hypervolumes_clusters/Total_Sorensen.pdf",height = 9.4, width = 9.1)
+pdf("./figs/hypervolumes_clusters/Total_Sorensen.pdf",height = 11, width = 11.5)
 circlize_dendrogram(dend_total,dend_track_height = 0.7,labels_track_height = 0.2)
 dev.off()
 
@@ -167,11 +167,11 @@ dev.off()
 ## Hypervolumes for widespread and redundant species 
 Redun_Wides_hypervol<-
   Traits_Biome_Di_Ri %>% 
-  dplyr::filter(Widespread > 0.5 & DiScale < 0.5) %>% 
+  dplyr::filter(Widespread > 0.5 & DiScale < 0.25) %>% 
   dplyr::select(Biome,contains("Scaled")) %>% 
   Biomes_hypervolume(biome_names)
 
-saveRDS(Redun_Wides_hypervol, "./outputs/ReduntWides_hypervolumes_Wides.rds")
+saveRDS(Redun_Wides_hypervol, "./outputs/ReduntWides_hypervolumes_Wides0.5_0.25.rds")
 
 png("./figs/hypervolumes_clusters/Redundant_Moist_Dry_Savanna.png", width = 600)
 plot(
@@ -205,7 +205,7 @@ dend_red<-
 
 
 #dir.create("./figs/hypervolumes_clusters")
-pdf("./figs/hypervolumes_clusters/Redundant_Sorensen.pdf", height = 9.7, width = 9.6)
+pdf("./figs/hypervolumes_clusters/Redundant_Sorensen0.5_0.25.pdf" ,height = 11, width = 11.5)
 circlize_dendrogram(dend_red,dend_track_height = 0.7,labels_track_height = 0.2)
 dev.off()
 
@@ -296,7 +296,7 @@ RedWides_GF<-
   foreach(i=1:length(biome_name), .combine = rbind) %do%{
     a<-Traits_Biome_Di_Ri %>% 
       filter(Biome==biome_name[i]) %>% 
-      filter(DiScale < 0.5 & Widespread > 0.5) %>% 
+      filter(DiScale < 0.25 & Widespread > 0.5) %>% 
       group_by(GROWTHFORM_STD) %>% 
       dplyr::summarise(N_sp=length(species)) %>% 
       mutate(Dist="Redun_wides",Biome=biome_name[i],prop=round(N_sp/sum(N_sp)*100,1))
