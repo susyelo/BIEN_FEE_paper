@@ -86,14 +86,13 @@ Traits_Biome_Di_Ri$sqrtSLA<-sqrt(Traits_Biome_Di_Ri$SLA)
 
 #Selecting and Scalling variables
 Traits_Biome_Di_Ri<-
-Traits_Biome_Di_Ri %>% 
-  group_by(Biome) %>% 
-  mutate(Scaled_logSeed_mass=scale(logseed_mass),
-         Scaled_logHeight=scale(logHeight),
-         Scaled_SLA=scale(sqrtSLA),
-         Scaled_logWood_density=scale(logWoodDensity),
-         Scaled_Leaf_N=scale(Leaf_N),
-         Scaled_Leaf_P=scale(Leaf_P)
+Traits_Biome_Di_Ri %>%
+  mutate(Scaled_logSeed_mass=as.numeric(scale(logseed_mass)),
+         Scaled_logHeight=as.numeric(scale(logHeight)),
+         Scaled_SLA=as.numeric(scale(sqrtSLA)),
+         Scaled_logWood_density=as.numeric(scale(logWoodDensity)),
+         Scaled_Leaf_N=as.numeric(scale(Leaf_N)),
+         Scaled_Leaf_P=as.numeric(scale(Leaf_P))
   )
   
 
@@ -109,6 +108,62 @@ Total_hypervol<-
 
 saveRDS(Total_hypervol, "./outputs/Total_hypervolumes.rds")
 
+
+png("./figs/hypervolumes_clusters/Total_Moist_Temperated_Mixed_Conifers.png", width = 600)
+plot(
+  hypervolume_join(
+    Total_hypervol$Moist, 
+    Total_hypervol$Temp_Mixed,
+    Total_hypervol$Coniferous
+  ),
+  contour.lwd=1.5,
+  colors=c(brewer.pal(n=3,"Set1")),
+  cex.data=2,cex.axis=1,cex.names=1.5,
+  show.legend=FALSE,
+  names=c("log(seed mass)","log(Height)", "sqrt(SLA)", "log(wood density)", "Leaf N","Leaf P")
+)
+legend("bottomleft",legend = c("Moist","Temperate mixed", "Conifers"),
+       text.col=brewer.pal(n=3,"Set1"),bty="n",cex=1.5,text.font=2)
+dev.off()
+
+png("./figs/hypervolumes_clusters/Total_Moist_Dry_Savanna.png", width = 600)
+plot(
+  hypervolume_join(
+    Total_hypervol$Moist, 
+    Total_hypervol$Dry,
+    Total_hypervol$Savanna
+  ),
+  contour.lwd=1.5,
+  colors=c(brewer.pal(n=3,"Set1")),
+  cex.data=2,cex.axis=1,cex.names=1.5,
+  show.legend=FALSE,
+  names=c("log(seed mass)","log(Height)", "sqrt(SLA)", "log(wood density)", "Leaf N","Leaf P")
+)
+legend("bottomleft",legend = c("Moist","Dry", "Savanna"),
+       text.col=brewer.pal(n=3,"Set1"),bty="n",cex=1.5,text.font=2)
+dev.off()
+
+
+
+
+## Similarity hypervolumes with the total species
+Total_Sim<-similarity_hypervol(Total_hypervol)
+#saveRDS(Total_Sim, "./outputs/Total_similarity_hypervolumes.rds")
+fit_total <-hclust(as.dist(1-Total_Sim))
+
+dend_total<-
+  fit_total %>% 
+  as.dendrogram() %>% 
+  color_branches(1,col=wes_palette("Cavalcanti1")[1]) %>% 
+  set("branches_lwd", 4) %>% 
+  set("labels_cex", 1.5)
+
+pdf("./figs/hypervolumes_clusters/Total_Sorensen.pdf",height = 9.4, width = 9.1)
+circlize_dendrogram(dend_total,dend_track_height = 0.7,labels_track_height = 0.2)
+dev.off()
+
+
+
 ## Hypervolumes for widespread and redundant species 
 Redun_Wides_hypervol<-
   Traits_Biome_Di_Ri %>% 
@@ -116,75 +171,24 @@ Redun_Wides_hypervol<-
   dplyr::select(Biome,contains("Scaled")) %>% 
   Biomes_hypervolume(biome_names)
 
-saveRDS(Redun_Wides_hypervol, "./outputs/ReduntWides_hypervolumes_Wides0.5_Di0.5.rds")
+saveRDS(Redun_Wides_hypervol, "./outputs/ReduntWides_hypervolumes_Wides.rds")
 
-plot(
-  hypervolume_join(
-    Redun_Wides_hypervol$Moist, 
-    Redun_Wides_hypervol$Coniferous,
-    Redun_Wides_hypervol$Taiga
-  ),
-  colors=c(brewer.pal(n=4,"Set1")),
-  show.legend=TRUE,
-  show.random=FALSE,
-  show.3d=TRUE
-)
-
-
-
-## Plot hypervolumes per category
-png("./figs/hypervolumes_clusters/Total_Moist_Dry_Savanna.png",width = 600, height = 600)
-plot(
-  hypervolume_join(
-    Total_hypervol$Moist_Forest, 
-    Total_hypervol$Dry_Forest,
-    Total_hypervol$Savannas
-  ),
-  contour.lwd=1.5,
-  colors=c(brewer.pal(n=3,"Set1")),
-  show.legend=TRUE
-)
-dev.off()
-
-png("./figs/hypervolumes_clusters/Total_Moist_Temperated_Mixed_Conifers.png",width = 600, height = 600)
-plot(
-  hypervolume_join(
-    Total_hypervol$Moist_Forest, 
-    Total_hypervol$Temperate_Mixed,
-    Total_hypervol$Coniferous_Forests
-  ),
-  contour.lwd=1.5,
-  colors=c(brewer.pal(n=3,"Set1")),
-  show.legend=TRUE
-)
-dev.off()
-
-png("./figs/hypervolumes_clusters/RedWides_Moist_Dry_Savanna.png",width = 600, height = 600)
+png("./figs/hypervolumes_clusters/Redundant_Moist_Dry_Savanna.png", width = 600)
 plot(
   hypervolume_join(
     Redun_Wides_hypervol$Moist, 
     Redun_Wides_hypervol$Dry,
-    Redun_Wides_hypervol$Savannas
+    Redun_Wides_hypervol$Savanna
   ),
   contour.lwd=1.5,
   colors=c(brewer.pal(n=3,"Set1")),
-  show.legend=TRUE
+  cex.data=2,cex.axis=1,cex.names=1.5,
+  show.legend=FALSE,
+  names=c("log(seed mass)","log(Height)", "sqrt(SLA)", "log(wood density)", "Leaf N","Leaf P")
 )
+legend("bottomleft",legend = c("Moist","Dry", "Savanna"),
+       text.col=brewer.pal(n=3,"Set1"),bty="n",cex=1.5,text.font=2)
 dev.off()
-
-png("./figs/hypervolumes_clusters/RedWides_Moist_Temperated_Mixed_Conifers.png",width = 600, height = 600)
-plot(
-  hypervolume_join(
-    Redun_Wides_hypervol$Moist, 
-    Redun_Wides_hypervol$Temp_Mixed,
-    Redun_Wides_hypervol$Coniferous
-  ),
-  contour.lwd=1.5,
-  colors=c(brewer.pal(n=3,"Set1")),
-  show.legend=TRUE
-)
-dev.off()
-
 
 ## Calculate Hypervolume similarity using Sorense's index -----
 ## With Redundant species
@@ -200,27 +204,11 @@ dend_red<-
   set("labels_cex", 1.5)
 
 
-## With the total species
-Total_Sim<-similarity_hypervol(Total_hypervol)
-#saveRDS(Total_Sim, "./outputs/Total_similarity_hypervolumes.rds")
-fit_total <-hclust(as.dist(1-Total_Sim))
-
-dend_total<-
-  fit_total %>% 
-  as.dendrogram() %>% 
-  color_branches(1,col=wes_palette("Cavalcanti1")[1]) %>% 
-  set("branches_lwd", 4) %>% 
-  set("labels_cex", 1.5)
-
-
 #dir.create("./figs/hypervolumes_clusters")
 pdf("./figs/hypervolumes_clusters/Redundant_Sorensen.pdf", height = 9.7, width = 9.6)
 circlize_dendrogram(dend_red,dend_track_height = 0.7,labels_track_height = 0.2)
 dev.off()
 
-pdf("./figs/hypervolumes_clusters/Total_Sorensen.pdf",height = 9.4, width = 9.1)
-circlize_dendrogram(dend_total,dend_track_height = 0.7,labels_track_height = 0.2)
-dev.off()
 
 # Hypervolumes for climatic categories ------------------------------------
 tropical<-c("Moist_Forest","Dry_Forest","Tropical_Grasslands","Savannas")
@@ -301,11 +289,14 @@ Total_GF<-
   }
 
 #Using the ScaleUi values produced the same results as the ScaleDi
+Traits_Biome_Di_Ri$DiScale<-round(Traits_Biome_Di_Ri$DiScale,1)
+Traits_Biome_Di_Ri$Widespread<-round(Traits_Biome_Di_Ri$Widespread,1)
+
 RedWides_GF<-
   foreach(i=1:length(biome_name), .combine = rbind) %do%{
     a<-Traits_Biome_Di_Ri %>% 
       filter(Biome==biome_name[i]) %>% 
-      filter(DiScale < 0.50 & Widespread > 0.75) %>% 
+      filter(DiScale < 0.5 & Widespread > 0.5) %>% 
       group_by(GROWTHFORM_STD) %>% 
       dplyr::summarise(N_sp=length(species)) %>% 
       mutate(Dist="Redun_wides",Biome=biome_name[i],prop=round(N_sp/sum(N_sp)*100,1))
@@ -317,7 +308,7 @@ RedWides_GF$Tmnt<-"RedWid"
 new_df<-rbind(Total_GF,RedWides_GF)
 col_GF<-c(wes_palette("Cavalcanti1")[c(2:4,1)],"grey")
 
-png("./figs/Growth_forms/Total_vs_redundant_species_Wid75_Dist50.png", width = 800, height = 500)
+png("./figs/Growth_forms/Total_vs_redundant_species_Wid50_Dist50.png", width = 800, height = 500)
 ggplot(data = new_df, 
        mapping = aes(x = Biome, fill = GROWTHFORM_STD, 
                      y = ifelse(test = Tmnt == "Total", 
