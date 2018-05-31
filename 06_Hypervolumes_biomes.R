@@ -226,8 +226,8 @@ dev.off()
 
 
 # Hypervolumes for climatic categories ------------------------------------
-tropical<-c("Moist_Forest","Dry_Forest","Tropical_Grasslands","Savannas")
-temperate<-c("Temperate_Grasslands","Coniferous_Forests","Temperate_Mixed","Mediterranean_Woodlands")
+tropical<-c("Moist","Dry","Trop_Grass","Savannas")
+temperate<-c("Temp_Mixed","Coniferous","Temp_Grass","Mediterranean")
 cold<-c("Taiga","Tundra")
 
 Traits_Biome_Di_Ri$ClimBiomes<-ifelse(Traits_Biome_Di_Ri$Biome%in%tropical,"Tropical",NA)
@@ -237,7 +237,7 @@ Traits_Biome_Di_Ri$ClimBiomes<-ifelse(Traits_Biome_Di_Ri$Biome%in%temperate,"Tem
 Traits_Biome_Di_Ri$ClimBiomes<-ifelse(Traits_Biome_Di_Ri$Biome%in%cold,"Cold",
                                       Traits_Biome_Di_Ri$ClimBiomes)
 
-Traits_Biome_Di_Ri$ClimBiomes[which(Traits_Biome_Di_Ri$Biome=="Xeric_Woodlands")]<-"Xeric"
+Traits_Biome_Di_Ri$ClimBiomes[which(Traits_Biome_Di_Ri$Biome=="Xeric")]<-"Xeric"
 
 
 ## The function needs a variable called "Biome" 
@@ -248,11 +248,11 @@ Traits_Biome_Di_Ri_tmp$Biome<-Traits_Biome_Di_Ri_tmp$ClimBiomes
 biome_names<-unique(Traits_Biome_Di_Ri_tmp$Biome)
 
 
-Climate_Biome_Di_Ri<-
+Climatic_hypervol<-
   Traits_Biome_Di_Ri_tmp %>% 
-  dplyr::select(contains("Scaled"))
+  dplyr::select(Biome,contains("Scaled")) %>% 
+  Biomes_hypervolume(biome_names)
 
-Climatic_hypervol<-Biomes_hypervolume(Climate_Biome_Di_Ri,biome_names)
 saveRDS(Climatic_hypervol,"./outputs/Climatic_hypervolumes.rds")
 
 
