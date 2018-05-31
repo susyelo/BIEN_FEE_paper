@@ -95,6 +95,17 @@ cells_in_sp<-spPresence_biome %>%
 
 saveRDS(cells_in_sp, file="./outputs/spPresence_cell_prop_biomes_all.rds")
 
+cells_in_sp$biomes<-recode(cells_in_sp$biomes,Moist_Forest="Moist",
+                                 Savannas="Savannas",
+                                 Tropical_Grasslands="Trop_Grass",
+                                 Dry_Forest="Dry",
+                                 Xeric_Woodlands="Xeric",
+                                 Mediterranean_Woodlands="Mediterranean",
+                                 Temperate_Grasslands="Temp_Grass",
+                                 Temperate_Mixed="Temp_Mixed",
+                                 Coniferous_Forests="Coniferous",
+                                 Taiga="Taiga",
+                                 Tundra="Tundra")
 
 # 2. Species list for each biome ------------------------------------------
 
@@ -263,6 +274,7 @@ Similarity_sp_biomes<-function(sp_list){
   
 ## Dissimilarity all species  
 Total_similarity<-Similarity_sp_biomes(Total_sp_list)
+
 fit_total_sim <-hclust(as.dist(1-Total_similarity))
 
 labels(fit_total_sim)<-c("Trop_Grass", "Moist","Savannas", "Dry","Xeric", 
@@ -279,6 +291,12 @@ pdf("./figs/species_composition/species_composition_cluster_allsp.pdf", height =
 circlize_dendrogram(dend_total,dend_track_height = 0.7,labels_track_height = 0.2)
 dev.off()
 
+### Heatmaps
+
+pdf("./figs/species_composition/species_composition_heatmap.pdf", width = 10)
+heatmap(as.matrix(1-Total_similarity), symm = TRUE,
+        distfun = function(x) as.dist(x),keep.dendro = TRUE,margins = c(8,3))
+dev.off()
 
 
 ## Dissimilarity with dominant species

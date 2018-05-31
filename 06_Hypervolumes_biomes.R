@@ -163,6 +163,14 @@ circlize_dendrogram(dend_total,dend_track_height = 0.7,labels_track_height = 0.2
 dev.off()
 
 
+Total_Sim[upper.tri(Total_Sim)]<-t(Total_Sim)[upper.tri(Total_Sim)]
+pdf("./figs/hypervolumes_clusters/Total_hypervolumes_similarity_heatmap.pdf", width = 10)
+heatmap(as.matrix(1-Total_Sim), symm = TRUE,
+        distfun = function(x) as.dist(x),keep.dendro = TRUE,margins = c(12,3),
+        cexRow=1.5,cexCol=1.5)
+dev.off()
+
+
 
 ## Hypervolumes for widespread and redundant species 
 Redun_Wides_hypervol<-
@@ -207,6 +215,13 @@ dend_red<-
 #dir.create("./figs/hypervolumes_clusters")
 pdf("./figs/hypervolumes_clusters/Redundant_Sorensen0.5_0.25.pdf" ,height = 11, width = 11.5)
 circlize_dendrogram(dend_red,dend_track_height = 0.7,labels_track_height = 0.2)
+dev.off()
+
+redun_Sim[upper.tri(redun_Sim)]<-t(redun_Sim)[upper.tri(redun_Sim)]
+pdf("./figs/hypervolumes_clusters/Redundant_hypervolumes_similarity_heatmap.pdf", width = 10)
+heatmap(as.matrix(1-redun_Sim), symm = TRUE,
+        distfun = function(x) as.dist(x),keep.dendro = TRUE,margins = c(12,3),
+        cexRow=1.5,cexCol=1.5)
 dev.off()
 
 
