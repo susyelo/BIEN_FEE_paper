@@ -150,10 +150,10 @@ rownames(spSimilarity)<-names(biome_richness)
 
 # 4.1 Species composition among biomes using all the species
 
-biome_order<-c("Moist_Forest","Dry_Forest",
-               "Xeric_Woodlands","Savannas","Tropical_Grasslands",
-               "Coniferous_Forests","Temperate_Mixed","Temperate_Grasslands",
-               "Mediterranean_Woodlands","Taiga","Tundra")
+biome_order<-c("Moist","Dry",
+               "Xeric","Savannas","Trop_Grass",
+               "Coniferous","Temp_Mixed","Temp_Grass",
+               "Mediterranean","Taiga","Tundra")
 
 spSimilarity_1<-spSimilarity[biome_order,biome_order]
 
@@ -207,6 +207,7 @@ colnames(spSimilarity_ma)<-unique(spSimilarity_Wides$to)
 spSimilarity_ma<-spSimilarity_ma[biome_order,biome_order]
 
 ## Print file to include into the supplementary information
+diag(spSimilarity_ma)<-endemics_n[biome_order]
 write.csv(spSimilarity_ma,"./supp_info/Shared_species_matrix.csv")
 
 diag(spSimilarity_ma)<-0
@@ -295,7 +296,8 @@ dev.off()
 
 pdf("./figs/species_composition/species_composition_heatmap.pdf", width = 10)
 heatmap(as.matrix(1-Total_similarity), symm = TRUE,
-        distfun = function(x) as.dist(x),keep.dendro = TRUE,margins = c(8,3))
+        distfun = function(x) as.dist(x),keep.dendro = TRUE,margins = c(12,3),
+        cexRow=1.5,cexCol=1.5)
 dev.off()
 
 
