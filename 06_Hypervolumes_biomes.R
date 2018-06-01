@@ -96,8 +96,7 @@ Traits_Biome_Di_Ri %>%
   )
   
 
-# Redundant and widespread species hypervolumes ---------------------------
-## Ordering traits
+# Total species hypervolumes ---------------------------
 biome_names<-levels(Traits_Biome_Di_Ri$Biome)
 
 ## Hypervolumes for all species
@@ -109,21 +108,39 @@ Total_hypervol<-
 saveRDS(Total_hypervol, "./outputs/Total_hypervolumes.rds")
 
 
-png("./figs/hypervolumes_clusters/Total_Moist_Temperated_Mixed_Conifers.png", width = 600)
+pdf("./figs/hypervolumes_clusters/Total_Moist_Temperated_Mixed_Taiga.pdf", width = 12)
 plot(
   hypervolume_join(
     Total_hypervol$Moist, 
     Total_hypervol$Temp_Mixed,
-    Total_hypervol$Coniferous
+    Total_hypervol$Taiga
   ),
   contour.lwd=1.5,
   colors=c(brewer.pal(n=3,"Set1")),
-  cex.data=2,cex.axis=1,cex.names=1.5,
+  cex.axis=1,cex.names=1.5,
   show.legend=FALSE,
   names=c("log(seed mass)","log(Height)", "sqrt(SLA)", "log(wood density)", "Leaf N","Leaf P")
 )
-legend("bottomleft",legend = c("Moist","Temperate mixed", "Conifers"),
+legend("bottomleft",legend = c("Moist","Temperate mixed", "Taiga"),
        text.col=brewer.pal(n=3,"Set1"),bty="n",cex=1.5,text.font=2)
+dev.off()
+
+pdf("./figs/hypervolumes_clusters/Total_Moist_Dry_Savanna_Xeric.pdf", width = 12)
+plot(
+  hypervolume_join(
+    Total_hypervol$Moist, 
+    Total_hypervol$Dry,
+    Total_hypervol$Savannas,
+    Total_hypervol$Xeric
+  ),
+  contour.lwd=1.5,
+  colors=c(brewer.pal(n=4,"Set1")),
+  cex.axis=1,cex.names=1.5,
+  show.legend=FALSE,
+  names=c("log(seed mass)","log(Height)", "sqrt(SLA)", "log(wood density)", "Leaf N","Leaf P")
+)
+legend("bottomleft",legend = c("Moist","Dry", "Savannas", "Xeric"),
+       text.col=brewer.pal(n=4,"Set1"),bty="n",cex=1.5,text.font=2)
 dev.off()
 
 png("./figs/hypervolumes_clusters/Total_Moist_Dry_Savanna.png", width = 600)
@@ -171,6 +188,7 @@ heatmap(as.matrix(1-Total_Sim), symm = TRUE,
 dev.off()
 
 
+# Redundant and widespread species hypervolumes ---------------------------
 
 ## Hypervolumes for widespread and redundant species 
 Redun_Wides_hypervol<-
@@ -180,6 +198,42 @@ Redun_Wides_hypervol<-
   Biomes_hypervolume(biome_names)
 
 saveRDS(Redun_Wides_hypervol, "./outputs/ReduntWides_hypervolumes_Wides0.5_0.25.rds")
+
+pdf("./figs/hypervolumes_clusters/Redun_Moist_Temperated_Mixed_Taiga.pdf", width = 12)
+plot(
+  hypervolume_join(
+    Redun_Wides_hypervol$Moist, 
+    Redun_Wides_hypervol$Temp_Mixed,
+    Redun_Wides_hypervol$Taiga
+  ),
+  contour.lwd=1.5,
+  colors=c(brewer.pal(n=3,"Set1")),
+  cex.axis=1,cex.names=1.5,
+  show.legend=FALSE,
+  names=c("log(seed mass)","log(Height)", "sqrt(SLA)", "log(wood density)", "Leaf N","Leaf P")
+)
+legend("bottomleft",legend = c("Moist","Temperate mixed", "Taiga"),
+       text.col=brewer.pal(n=3,"Set1"),bty="n",cex=1.5,text.font=2)
+dev.off()
+
+pdf("./figs/hypervolumes_clusters/Redun_Moist_Dry_Savanna_Xeric.pdf", width = 12)
+plot(
+  hypervolume_join(
+    Redun_Wides_hypervol$Moist, 
+    Redun_Wides_hypervol$Dry,
+    Redun_Wides_hypervol$Savannas,
+    Redun_Wides_hypervol$Xeric
+  ),
+  contour.lwd=1.5,
+  colors=c(brewer.pal(n=4,"Set1")),
+  cex.axis=1,cex.names=1.5,
+  show.legend=FALSE,
+  names=c("log(seed mass)","log(Height)", "sqrt(SLA)", "log(wood density)", "Leaf N","Leaf P")
+)
+legend("bottomleft",legend = c("Moist","Dry", "Savannas", "Xeric"),
+       text.col=brewer.pal(n=4,"Set1"),bty="n",cex=1.5,text.font=2)
+dev.off()
+
 
 png("./figs/hypervolumes_clusters/Redundant_Moist_Dry_Savanna.png", width = 600)
 plot(
@@ -267,7 +321,7 @@ dend_climatic<-
 
 
 
-png("./figs/hypervolumes_clusters/Climatic_hypervolumes_total.png",width = 600, height = 600)
+pdf("./figs/hypervolumes_clusters/Climatic_hypervolumes_total.pdf",width = 12)
 plot(
   hypervolume_join(
     Climatic_hypervol$Tropical, 
@@ -277,10 +331,12 @@ plot(
   ),
   contour.lwd=1.5,
   colors=c(brewer.pal(n=4,"Set1")),
-  show.legend=TRUE,
-  cex.data=1,cex.axis=1,cex.names=1,cex.legend=2,
-  show.random=FALSE
+  cex.axis=1,cex.names=1.5,
+  show.legend=FALSE,
+  names=c("log(seed mass)","log(Height)", "sqrt(SLA)", "log(wood density)", "Leaf N","Leaf P")
 )
+legend("bottomleft",legend = c("Tropical","Xeric", "Temperate", "Polar"),
+       text.col=brewer.pal(n=4,"Set1"),bty="n",cex=1.5,text.font=2)
 dev.off()
 
 ### Hypervolumes for Dominant growth forms -----
@@ -323,7 +379,7 @@ RedWides_GF$Tmnt<-"RedWid"
 new_df<-rbind(Total_GF,RedWides_GF)
 col_GF<-c(wes_palette("Cavalcanti1")[c(2:4,1)],"grey")
 
-png("./figs/Growth_forms/Total_vs_redundant_species_Wid50_Dist50.png", width = 800, height = 500)
+pdf("./figs/Growth_forms/Total_vs_redundant_species_Wid50_Dist25.pdf", width = 12, height = 8)
 ggplot(data = new_df, 
        mapping = aes(x = Biome, fill = GROWTHFORM_STD, 
                      y = ifelse(test = Tmnt == "Total", 
