@@ -203,7 +203,7 @@ pdf("./figs/Di_Ri_heatmaps/All_biomes_heatmap_logTraits.pdf")
 Biome_Di_Ri %>% 
   ggplot(aes(Widespread, DiScale)) +
   stat_binhex(bins=20,aes(fill=log(..count..)))+
-  scale_fill_gradientn(colours=c("#00AFBB","#FC4E07"),name = "log(Richness)")  +
+  scale_fill_gradientn(colours=c(wes_palette("Zissou1")),name = "log(Richness)")  +
   theme_minimal()+
   facet_wrap( ~ Biome, ncol = 3)+
   ylab("Distinctiveness")+
