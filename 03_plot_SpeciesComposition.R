@@ -294,10 +294,22 @@ dev.off()
 
 ### Heatmaps
 
+my_palette <- colorRampPalette(c(wes_palette("Zissou1")[5],
+                                 wes_palette("Zissou1")[c(5:3)],
+                                 "white"))(n = 100)
+
+col_breaks<-seq(0,1,by=0.01)
+
 pdf("./figs/species_composition/species_composition_heatmap.pdf", width = 10)
-heatmap(as.matrix(1-Total_similarity), symm = TRUE,
-        distfun = function(x) as.dist(x),keep.dendro = TRUE,margins = c(12,3),
-        cexRow=1.5,cexCol=1.5)
+heatmap.2(as.matrix(1-Total_similarity), symm = TRUE,
+          distfun = function(x) as.dist(x),dendrogram = "both",margins = c(12,10),
+          revC = TRUE,
+          cexRow=1.5,cexCol=1.5,
+          trace = "none", density.info = "none",keysize = 1.3,
+          key.title = "",
+          key.xlab = "",
+          col=my_palette,
+          breaks=col_breaks)
 dev.off()
 
 

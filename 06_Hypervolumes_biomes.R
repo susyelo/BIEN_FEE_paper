@@ -180,11 +180,23 @@ circlize_dendrogram(dend_total,dend_track_height = 0.7,labels_track_height = 0.2
 dev.off()
 
 
+#my_palette<-rev(wes_palette("Zissou1", 100,type = "continuous"))
+my_palette <- colorRampPalette(c(wes_palette("Zissou1")[5],
+                                 wes_palette("Zissou1")[c(4:3)],
+                                 "white"))(n = 100)
+col_breaks<-seq(0,1,by=0.01)
+
 Total_Sim[upper.tri(Total_Sim)]<-t(Total_Sim)[upper.tri(Total_Sim)]
 pdf("./figs/hypervolumes_clusters/Total_hypervolumes_similarity_heatmap.pdf", width = 10)
-heatmap(as.matrix(1-Total_Sim), symm = TRUE,
-        distfun = function(x) as.dist(x),keep.dendro = TRUE,margins = c(12,3),
-        cexRow=1.5,cexCol=1.5)
+heatmap.2(as.matrix(1-Total_Sim), symm = TRUE,
+          distfun = function(x) as.dist(x),dendrogram = "both",margins = c(12,10),
+          revC = TRUE,
+          cexRow=1.5,cexCol=1.5,
+          trace = "none", density.info = "none",keysize = 1.3,
+          key.title = "",
+          key.xlab = "",
+          col=my_palette,
+          breaks=col_breaks)
 dev.off()
 
 
@@ -277,6 +289,29 @@ heatmap(as.matrix(1-redun_Sim), symm = TRUE,
         distfun = function(x) as.dist(x),keep.dendro = TRUE,margins = c(12,3),
         cexRow=1.5,cexCol=1.5)
 dev.off()
+
+my_palette <- colorRampPalette(c(wes_palette("Zissou1")[5]),
+                               wes_palette("Zissou1")[c(3:4)],
+                               "white")(n = 100)
+
+my_palette <- colorRampPalette(c(rep(wes_palette("Zissou1")[5],2),
+                                 wes_palette("Zissou1")[c(4:3)],
+                                 "white"))(n = 100)
+
+
+col_breaks<-seq(0,1,by=0.01)
+
+
+heatmap.2(as.matrix(1-redun_Sim), symm = TRUE,
+          distfun = function(x) as.dist(x),dendrogram = "both",margins = c(12,10),
+          revC = TRUE,
+          cexRow=1.5,cexCol=1.5,
+          trace = "none", density.info = "none",keysize = 1.3,
+          key.title = "",
+          key.xlab = "",
+          col=my_palette,
+          breaks=col_breaks)
+
 
 
 # Hypervolumes for climatic categories ------------------------------------
