@@ -198,12 +198,14 @@ Biome_Di_Ri$Biome<-factor(Biome_Di_Ri$Biome, levels=c("Moist_Forest","Savannas",
                                                        "Temperate_Grasslands","Temperate_Mixed","Coniferous_Forests",
                                                        "Taiga","Tundra"))
 
+my_palette <-colorRampPalette(c('#ffffcc','#c2e699','#78c679','#31a354','#006837','#006837'))(n = 10)
+
 # Hexagonal binning
 pdf("./figs/Di_Ri_heatmaps/All_biomes_heatmap_logTraits.pdf")
 Biome_Di_Ri %>% 
   ggplot(aes(Widespread, DiScale)) +
   stat_binhex(bins=20,aes(fill=log(..count..)))+
-  scale_fill_gradientn(colours=c(wes_palette("Zissou1")),name = "log(Richness)")  +
+  scale_fill_gradientn(colours=c('#ffffcc','#c2e699','#78c679','#31a354','#006837','#006837'),name = "log(Richness)")  +
   theme_minimal()+
   facet_wrap( ~ Biome, ncol = 3)+
   ylab("Distinctiveness")+

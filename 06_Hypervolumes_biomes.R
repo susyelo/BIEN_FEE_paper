@@ -181,9 +181,8 @@ circlize_dendrogram(dend_total,dend_track_height = 0.7,labels_track_height = 0.2
 dev.off()
 
 
-my_palette <- colorRampPalette(c(wes_palette("Zissou1")[5],
-                                 wes_palette("Zissou1")[c(5:3)],
-                                 "white"))(n = 100)
+my_palette <-rev(colorRampPalette(c('#ffffcc','#c2e699','#78c679','#31a354','#006837','#006837'))(n = 100))
+
 
 col_breaks<-seq(0,1,by=0.01)
 

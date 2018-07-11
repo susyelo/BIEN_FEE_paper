@@ -301,6 +301,7 @@ my_palette <- colorRampPalette(c(wes_palette("Zissou1")[5],
 
 my_palette <-rev(colorRampPalette(c('#ffffcc','#c2e699','#78c679','#31a354','#006837','#006837'))(n = 100))
 
+
 col_breaks<-seq(0,1,by=0.01)
 
 pdf("./figs/species_composition/species_composition_heatmap.pdf", width = 10)
