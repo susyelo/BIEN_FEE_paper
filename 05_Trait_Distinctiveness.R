@@ -200,12 +200,16 @@ Biome_Di_Ri$Biome<-factor(Biome_Di_Ri$Biome, levels=c("Moist_Forest","Savannas",
 
 my_palette <-colorRampPalette(c('#ffffcc','#c2e699','#78c679','#31a354','#006837','#006837'))(n = 10)
 
+my_palette <-colorRampPalette(c("#02401b","#02401b","#32806e","white"))(n = 10)
+
+
+
 # Hexagonal binning
-pdf("./figs/Di_Ri_heatmaps/All_biomes_heatmap_logTraits.pdf")
+pdf("./figs/Di_Ri_heatmaps/All_biomes_heatmap_logTraits2.pdf")
 Biome_Di_Ri %>% 
   ggplot(aes(Widespread, DiScale)) +
   stat_binhex(bins=20,aes(fill=log(..count..)))+
-  scale_fill_gradientn(colours=c('#ffffcc','#c2e699','#78c679','#31a354','#006837','#006837'),name = "log(Richness)")  +
+  scale_fill_gradientn(colours=rev(c("#02401B","#02401B","#2C7C4C","#2C7C4C","#69A682","#ACCCB9")),name = "log(Richness)")  +
   theme_minimal()+
   facet_wrap( ~ Biome, ncol = 3)+
   ylab("Distinctiveness")+

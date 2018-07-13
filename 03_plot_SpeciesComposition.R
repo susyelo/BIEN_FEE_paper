@@ -295,11 +295,14 @@ dev.off()
 
 ### Heatmaps
 
-my_palette <- colorRampPalette(c(wes_palette("Zissou1")[5],
-                                 wes_palette("Zissou1")[c(5:3)],
+my_palette <- colorRampPalette(c(wes_palette("Cavalcanti1")[2],
+                                 wes_palette("Cavalcanti1")[c(2,4)],
                                  "white"))(n = 100)
 
 my_palette <-rev(colorRampPalette(c('#ffffcc','#c2e699','#78c679','#31a354','#006837','#006837'))(n = 100))
+
+
+my_palette <-colorRampPalette(c("#02401b","#02401b","#32806e","white"))(n = 100)
 
 
 col_breaks<-seq(0,1,by=0.01)
