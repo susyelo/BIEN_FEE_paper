@@ -74,8 +74,8 @@ crs_ref<-crs(total_richness)
 biomes_shp_proj <- spTransform(biome_poly_sub, CRSobj = crs_ref)
 
 biomes_shp_proj$biomes<-factor(biomes_shp_proj$biomes, 
-                               levels=c("Moist_Forest","Dry_Forest","Xeric_Woodlands",
-                                        "Savannas","Tropical_Grasslands", "Coniferous_Forests",
+                               levels=c("Moist_Forest","Savannas","Dry_Forest","Xeric_Woodlands",
+                                        "Tropical_Grasslands", "Coniferous_Forests",
                                         "Temperate_Mixed",
                                         "Temperate_Grasslands",
                                         "Mediterranean_Woodlands",
@@ -90,8 +90,8 @@ bio_colors <- c('#33a02c','#b2df8a', '#ffff99','#fdbf6f','#ff7f00','#e31a1c','#f
                 '#cab2d6','#6a3d9a')
 
 # plot using new colors
-cols_wes=c(wes_palette("Darjeeling",6,type="continuous"),
-           wes_palette("Cavalcanti",5,type="continuous"))
+cols_wes=c(wes_palette("Darjeeling1",6,type="continuous"),
+           wes_palette("Cavalcanti1",5,type="continuous"))
 
 
 names_tmp<-gsub("_"," ",levels(biomes_shp_proj$biomes))

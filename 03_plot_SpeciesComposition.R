@@ -151,24 +151,24 @@ rownames(spSimilarity)<-names(biome_richness)
 
 # 4.1 Species composition among biomes using all the species
 
-biome_order<-c("Moist","Dry",
-               "Xeric","Savannas","Trop_Grass",
+biome_order<-c("Moist","Savannas","Dry",
+               "Xeric","Trop_Grass",
                "Coniferous","Temp_Mixed","Temp_Grass",
                "Mediterranean","Taiga","Tundra")
 
 spSimilarity_1<-spSimilarity[biome_order,biome_order]
 
 
-col=c(wes_palette("Darjeeling",6,type="continuous"),
-      wes_palette("Cavalcanti",5,type="continuous"))
+col=c(wes_palette("Darjeeling1",6,type="continuous"),
+      wes_palette("Cavalcanti1",5,type="continuous"))
 
 diag(spSimilarity_1)<-0
-colnames(spSimilarity_1)<-c("Moist","Dry",
-                            "Xeric","Savannas",
-                            "Trop Grass","Coniferous","Temp Mixed",
-                            "Temp Grass","Mediterranean","Taiga","Tundra")
+colnames(spSimilarity_1)<-c("Moist","Savannas","Dry",
+                            "Xeric","Trop_Grass",
+                            "Coniferous","Temp_Mixed","Temp_Grass",
+                            "Mediterranean","Taiga","Tundra")
 
-
+indx<-match(colnames(spSimilarity_1),names(prop_endemics))
 colnames(spSimilarity_1)<-paste(colnames(spSimilarity_1),", ", prop_endemics[indx],"%", sep="")
 
 rownames(spSimilarity_1)<-colnames(spSimilarity_1)
@@ -215,9 +215,8 @@ diag(spSimilarity_ma)<-0
 Wides_sp_total<-unlist(lapply(Wides_sp_list,length))
 
 # Rename biomes
-colnames(spSimilarity_ma)<-c("Moist","Dry",
-                             "Xeric","Savannas",
-                             "Trop Grass","Coniferous","Temp Mixed",
+colnames(spSimilarity_ma)<-c("Moist","Savannas","Dry",
+                             "Xeric","Trop Grass","Coniferous","Temp Mixed",
                              "Temp Grass","Mediterranean","Taiga","Tundra")
 
 

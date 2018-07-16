@@ -135,13 +135,13 @@ plot(
     Total_hypervol$Xeric
   ),
   contour.lwd=1.5,
-  colors=c(brewer.pal(n=4,"Set1")),
+  colors=c("#FF0000","#91a737","#32806e","#F49c00"),
   cex.axis=1,cex.names=1.5,
   show.legend=FALSE,
   names=c("log(seed mass)","log(Height)", "sqrt(SLA)", "log(wood density)", "Leaf N","Leaf P")
 )
 legend("bottomleft",legend = c("Moist","Dry", "Savannas", "Xeric"),
-       text.col=brewer.pal(n=4,"Set1"),bty="n",cex=1.5,text.font=2)
+       text.col=c("#FF0000","#91a737","#32806e","#F49c00"),bty="n",cex=1.5,text.font=2.5)
 dev.off()
 
 png("./figs/hypervolumes_clusters/Total_Moist_Dry_Savanna.png", width = 600)
@@ -237,13 +237,13 @@ plot(
     Redun_Wides_hypervol$Xeric
   ),
   contour.lwd=1.5,
-  colors=c(brewer.pal(n=4,"Set1")),
+  colors=c("#FF0000","#91a737","#32806e","#F49c00"),
   cex.axis=1,cex.names=1.5,
   show.legend=FALSE,
   names=c("log(seed mass)","log(Height)", "sqrt(SLA)", "log(wood density)", "Leaf N","Leaf P")
 )
 legend("bottomleft",legend = c("Moist","Dry", "Savannas", "Xeric"),
-       text.col=brewer.pal(n=4,"Set1"),bty="n",cex=1.5,text.font=2)
+       text.col=c("#FF0000","#91a737","#32806e","#F49c00"),bty="n",cex=1.5,text.font=2.5)
 dev.off()
 
 
