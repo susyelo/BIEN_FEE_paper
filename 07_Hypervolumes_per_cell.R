@@ -1,0 +1,231 @@
+# libraries ---------------------------------------------------------------
+library(hypervolume)
+library(tidyverse)
+library(foreach)
+library(raster)
+
+# Functions ---------------------------------------------------------------
+source("./functions/BIEN2.0_RangeMaps_functions.R")
+source("./functions/Biomes_hypervolumes_fun.R")
+
+# data --------------------------------------------------------------------
+# 1. Trait data frame
+Traits_phylo<-read.csv("./data/processed/traits_ALLMB_lambda.csv")
+
+# 2. Values of distinctiveness and Restrictedness for species per biome
+Biome_Di_Ri<-read.csv("./outputs/Biome_Di_Ri_phylo.csv", row.names = 1)
+
+# 5. Presence matrix of species
+spPresence<-read.csv("./data/base/BIEN_2_Ranges/presence100km.csv")
+names(spPresence) = c("Species","Y","X")
+TraitSpecies <- unique(Traits_phylo$species)
+spMatrix_sub <- splistToMatrix(spPresence,TraitSpecies)
+
+## Remove cells without species
+indx<-which(rowSums(spMatrix_sub)!=0)
+spMatrix_sub<-spMatrix_sub[indx,]
+
+# Data manipulation -------------------------------------------------------
+# 1. Merging data frames
+Traits_Biome_Di_Ri<-merge(Biome_Di_Ri,Traits_phylo)
+
+
+## 3. Rename and order biomes
+Traits_Biome_Di_Ri$Biome<-recode(Traits_Biome_Di_Ri$Biome,Moist_Forest="Moist",
+                                 Savannas="Savannas",
+                                 Tropical_Grasslands="Trop_Grass",
+                                 Dry_Forest="Dry",
+                                 Xeric_Woodlands="Xeric",
+                                 Mediterranean_Woodlands="Mediterranean",
+                                 Temperate_Grasslands="Temp_Grass",
+                                 Temperate_Mixed="Temp_Mixed",
+                                 Coniferous_Forests="Coniferous",
+                                 Taiga="Taiga",
+                                 Tundra="Tundra")
+
+Traits_Biome_Di_Ri$Biome<-factor(Traits_Biome_Di_Ri$Biome, 
+                                 levels=c("Moist","Savannas","Trop_Grass",
+                                          "Dry","Xeric","Mediterranean",
+                                          "Temp_Grass","Temp_Mixed","Coniferous",
+                                          "Taiga","Tundra"))
+
+# Calculate hypervolumes -------------------------------
+
+# Transforming and Scaling variables
+Traits_Biome_Di_Ri$logseed_mass<-log(Traits_Biome_Di_Ri$Seed_mass)
+Traits_Biome_Di_Ri$logHeight<-log(Traits_Biome_Di_Ri$Height)
+Traits_Biome_Di_Ri$logWoodDensity<-log(Traits_Biome_Di_Ri$Wood_density)
+Traits_Biome_Di_Ri$sqrtSLA<-sqrt(Traits_Biome_Di_Ri$SLA)
+
+#Selecting and Scalling variables
+Traits_Biome_Di_Ri<-
+  Traits_Biome_Di_Ri %>% 
+  mutate(Scaled_logSeed_mass=as.numeric(scale(logseed_mass)),
+         Scaled_logHeight=as.numeric((logHeight)),
+         Scaled_SLA=as.numeric(scale(sqrtSLA)),
+         Scaled_logWood_density=as.numeric(scale(logWoodDensity)),
+         Scaled_Leaf_N=as.numeric(scale(Leaf_N)),
+         Scaled_Leaf_P=as.numeric(scale(Leaf_P))
+  )
+
+
+## Hypervolumes using a list of species function
+
+Trait_df<-
+  Traits_Biome_Di_Ri %>% 
+  dplyr::select(species,contains("Scaled"))
+
+
+### Taking only the 10% of the cells per each biomes
+cell_biomes_df<-readRDS("./outputs/spPresence_biomes_all.rds")
+
+cell_biomes<-cell_biomes_df %>% 
+  filter(Species%in%Trait_df$species)
+
+cell_biomes <-tapply(cell_biomes$cells, cell_biomes$biomes, unique)
+
+Random_cells<-
+  lapply(cell_biomes, 
+         function(x)
+           sample(x,length(x)*.20)
+  )  
+
+Random_cells<-lapply(Random_cells, function(x)paste("Cell",x,sep="_"))
+
+cells_names<-as.vector(unlist(Random_cells))
+
+Tmp<-NULL
+
+for (i in cells_names)
+{
+  x<-spMatrix_sub[i,]
+  
+  print(paste("Processing",length(Tmp)))
+  
+  cell_names<-names(x[x > 0 & !is.na(x)])
+  
+  if(length(cell_names)>100){
+    
+    sample_sp<-sample(cell_names,100)  
+  }else{
+    sample_sp<-cell_names
+  }
+  
+  if (length(cell_names)>1){
+    
+    cell_hyper<-Trait_df %>% 
+      filter(species%in%sample_sp) %>% 
+      dplyr::select(contains("Scaled")) %>% 
+      hypervolume_box()
+    
+    res<-cell_hyper@Volume
+    
+  }else{
+    
+    res=length(cell_names)
+    
+  }
+  Tmp<-c(Tmp,res)
+  write_rds(Tmp,"outputs/Hypervolume_sp_sample_box.rds")
+}
+
+names(Tmp)<-cells_names
+write_rds(Tmp,"outputs/Hypervolume_sp_sample_box_newHypervolumeCal.rds")
+
+cell_hyper_df<-data.frame(cells=cells_names,Volume=Tmp)
+cell_hyper_df$cells<-as.numeric(gsub("Cell_","",cell_hyper_df$cells))
+
+indx<-match(cell_hyper_df$cells,cell_biomes_df$cells)
+cell_hyper_df$biomes<-cell_biomes_df$biomes[indx]
+
+cell_hyper_df$biomes<-factor(cell_hyper_df$biomes, 
+                             levels=c("Moist_Forest","Savannas","Tropical_Grasslands",
+                                      "Dry_Forest","Xeric_Woodlands","Mediterranean_Woodlands",
+                                      "Temperate_Grasslands","Temperate_Mixed","Coniferous_Forests",
+                                      "Taiga","Tundra"))
+
+cell_hyper_df$biomes<-recode(cell_hyper_df$biomes,Moist_Forest="Moist",
+                                 Savannas="Savannas",
+                                 Tropical_Grasslands="Trop_Grass",
+                                 Dry_Forest="Dry",
+                                 Xeric_Woodlands="Xeric",
+                                 Mediterranean_Woodlands="Mediterranean",
+                                 Temperate_Grasslands="Temp_Grass",
+                                 Temperate_Mixed="Temp_Mixed",
+                                 Coniferous_Forests="Coniferous",
+                                 Taiga="Taiga",
+                                 Tundra="Tundra")
+
+library(wesanderson)
+
+pdf("./figs/Hypervolume_cells_spNewHypervolume_box.pdf", width=10)
+ggplot(data=cell_hyper_df,aes(x=biomes,y=Volume)) +
+  geom_boxplot()+
+  geom_jitter(alpha=0.5,color=wes_palette("Cavalcanti1")[4])+
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))+
+  xlab("")+ylab(expression(paste("SD"^"6")))
+dev.off()
+
+
+## Loop of 50 times
+
+
+### Taking only the 10% of the cells per each biomes
+cell_biomes_df<-readRDS("./outputs/spPresence_biomes_all.rds")
+
+cell_biomes<-cell_biomes_df %>% 
+  filter(Species%in%Trait_df$species)
+
+cell_biomes <-tapply(cell_biomes$cells, cell_biomes$biomes, unique)
+
+
+for (j in 1:50){
+
+  Random_cells<-
+    lapply(cell_biomes, 
+           function(x)
+             sample(x,length(x)*.10)
+    )  
+  
+  Random_cells<-lapply(Random_cells, function(x)paste("Cell",x,sep="_"))
+  
+  cells_names<-as.vector(unlist(Random_cells))
+  
+  Tmp<-NULL
+  
+  for (i in cells_names)
+  {
+    x<-spMatrix_sub[i,]
+    
+    print(paste("Processing",length(Tmp)))
+    
+    cell_names<-names(x[x > 0 & !is.na(x)])
+    
+    if(length(cell_names)>10){
+      
+      sample_sp<-sample(cell_names,10)  
+    }else{
+      sample_sp<-cell_names
+    }
+    
+    if (length(cell_names)>1){
+      
+      cell_hyper<-Trait_df %>% 
+        filter(species%in%sample_sp) %>% 
+        dplyr::select(contains("Scaled")) %>% 
+        hypervolume_gaussian()
+      
+      res<-cell_hyper@Volume
+      
+    }else{
+      
+      res=0
+      
+    }
+    Tmp<-c(Tmp,res)
+    names(Tmp)<-cell_names
+    write_rds(Tmp,"outputs/Hypervolume_sp_sample_gaussian50_Itera.rds")
+  }
+  
+}
+
