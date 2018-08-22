@@ -96,15 +96,17 @@ cells_names <- paste("Cell", cells_names, sep="_")
 
 
 Tmp<-NULL
+count <- 0
 
 system.time(
 
 for (i in cells_names)
 {
   print(i)
+  count <- count + 1
   x<-spMatrix_sub[i,]
 
-  print(paste("Processing",i))
+  print(paste("Processing",count, "out of ",length(cells_names)))
 
   sp_names<-names(x[x > 0 & !is.na(x)])
 
