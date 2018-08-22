@@ -23,7 +23,7 @@ spPresence<-read.csv("./data/base/BIEN_2_Ranges/presence100km.csv",header = FALS
 
 #2. Total_richness raster
 r_Total_Rich<-raster("./data/base/BIEN_2_Ranges/richness100km.tif")
-
+  
 ## Include NA to the cells that have not information on them
 r_Total_Rich[r_Total_Rich==0]<-NA
 
