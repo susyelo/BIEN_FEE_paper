@@ -182,6 +182,35 @@ ggplot(data=cell_hyper_df,aes(x=biomes,y=vol)) +
 dev.off()
 
 
+# Add richness info
+spMatrix_sub[which(spMatrix_sub>0)]<-1
+
+cell_richness <- rowSums(spMatrix_sub)
+
+names(cell_richness) <- gsub("Cell_", "", names(cell_richness))
+
+indx<-match(cell_hyper_df$cell,names(cell_richness))
+cell_hyper_df$Richness<-cell_richness[indx]
+
+
+
+library(ggpmisc)
+library(ggpubr)
+
+biomes_to_plot <- c("Moist","Dry","Trop_Grass")
+
+cell_hyper_df$logRich <- log10(cell_hyper_df$Richness)
+
+tmp_df <- cell_hyper_df %>% 
+  filter(biomes%in%biomes_to_plot & logRich > 2)
+
+ggscatterhist(data = tmp_df, x = "logRich", y = "vol",
+              color = "biomes", size = 3, alpha = 0.6,
+              palette = c("#00AFBB", "#E7B800", "#FC4E07"),
+              margin.plot = "boxplot",
+              ggtheme = theme_bw())
+
+
 ## Loop of 50 times
 
 
