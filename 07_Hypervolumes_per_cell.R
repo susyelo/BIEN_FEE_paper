@@ -147,10 +147,10 @@ for (i in cells_names)
 }
 )
 
-cell_hyper_df<-data.frame(cells=cells_names,Volume=Tmp)
-cell_hyper_df$cells<-as.numeric(gsub("Cell_","",cell_hyper_df$cells))
+cell_hyper_df <- Tmp
+cell_hyper_df$cell<-as.numeric(gsub("Cell_","",cell_hyper_df$cell))
 
-indx<-match(cell_hyper_df$cells,cell_biomes_df$cells)
+indx<-match(cell_hyper_df$cell,cell_biomes_df$cells)
 cell_hyper_df$biomes<-cell_biomes_df$biomes[indx]
 
 cell_hyper_df$biomes<-factor(cell_hyper_df$biomes,
@@ -173,8 +173,8 @@ cell_hyper_df$biomes<-recode(cell_hyper_df$biomes,Moist_Forest="Moist",
 
 library(wesanderson)
 
-pdf("./figs/Hypervolume_cells_spNewHypervolume_box.pdf", width=10)
-ggplot(data=cell_hyper_df,aes(x=biomes,y=Volume)) +
+pdf("./figs/07_Hypervolume_cells_spNewHypervolume_box.pdf", width=10)
+ggplot(data=cell_hyper_df,aes(x=biomes,y=vol)) +
   geom_boxplot()+
   geom_jitter(alpha=0.5,color=wes_palette("Cavalcanti1")[4])+
   theme(axis.text.x = element_text(angle = 90, hjust = 1))+
