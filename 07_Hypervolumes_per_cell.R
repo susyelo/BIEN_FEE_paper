@@ -68,12 +68,152 @@ Traits_Biome_Di_Ri<-
          Scaled_Leaf_P=as.numeric(scale(Leaf_P))
   )
 
-
-## Hypervolumes using a list of species function
-
 Trait_df<-
   Traits_Biome_Di_Ri %>%
   dplyr::select(species,contains("Scaled"))
+
+
+## Hypervolumes for each biomes cells using hypervolume box algorithm
+cell_biomes_df<-readRDS("./outputs/spPresence_biomes_all.rds")
+
+cell_biomes<-cell_biomes_df %>%
+  filter(Species%in%Trait_df$species)
+
+cell_biomes <-tapply(cell_biomes$cells, cell_biomes$biomes, unique)
+
+cells_names<-as.character(as.vector(unlist(cell_biomes)))
+
+cells_names <- paste("Cell", cells_names, sep="_")
+
+
+
+hypervolume_per_cell <- function(cells_list, pb_matrix, trait_df){
+  
+  count <- 0
+  
+  foreach(i = cells_list, .combine = rbind)%do%{
+    
+    print(i)
+    count <- count + 1
+    x<-pb_matrix[i,]
+    
+    print(paste("Processing",count, "out of ",length(cells_list)))
+    
+    sp_names<-names(x[x > 0 & !is.na(x)])
+    
+    if (length(sp_names)>1){
+      
+      res<- tryCatch({
+        cell_hyper<-trait_df %>%
+          filter(species%in%sp_names) %>%
+          dplyr::select(contains("Scaled")) %>%
+          hypervolume_box()
+        
+        cell_hyper@Volume
+        
+      },
+      error = function(cond){
+        message("Species with the same trait values")
+        return(NA)
+      })
+      
+    }else{
+      res = NA
+    }
+    
+    tmp_df <- data.frame(cell = i, vol = res)
+    
+    tmp_df
+  }
+  
+}
+
+## Running the function 
+system.time(
+hyper_cells_box <- hypervolume_per_cell(cells_list = cells_names[501:length(cells_names)], 
+                            pb_matrix = spMatrix_sub, 
+                            trait_df = Trait_df)
+)
+
+write_rds(hyper_cells_box, "./outputs/07_hypervol_cell_SDM_501_end_box.rds")
+
+hyper_cells_box_1<-readRDS("outputs/07_hypervol_cell_SDM_501_end_box.rds")
+hyper_cells_box_2<-readRDS("outputs/07_hypervol_cell_SDM_1:500_box.rds")
+
+hyper_cells_box<- rbind(hyper_cells_box_2,hyper_cells_box_1)
+
+hyper_cells_box$cell<-as.numeric(gsub("Cell_","",hyper_cells_box$cell))
+
+indx<-match(hyper_cells_box$cell,cell_biomes_df$cells)
+hyper_cells_box$biomes<-cell_biomes_df$biomes[indx]
+
+hyper_cells_box$biomes<-factor(hyper_cells_box$biomes,
+                             levels=c("Moist_Forest","Savannas","Tropical_Grasslands",
+                                      "Dry_Forest","Xeric_Woodlands","Mediterranean_Woodlands",
+                                      "Temperate_Grasslands","Temperate_Mixed","Coniferous_Forests",
+                                      "Taiga","Tundra"))
+
+hyper_cells_box$biomes<-recode(hyper_cells_box$biomes,Moist_Forest="Moist",
+                             Savannas="Savannas",
+                             Tropical_Grasslands="Trop_Grass",
+                             Dry_Forest="Dry",
+                             Xeric_Woodlands="Xeric",
+                             Mediterranean_Woodlands="Mediterranean",
+                             Temperate_Grasslands="Temp_Grass",
+                             Temperate_Mixed="Temp_Mixed",
+                             Coniferous_Forests="Coniferous",
+                             Taiga="Taiga",
+                             Tundra="Tundra")
+
+library(wesanderson)
+
+pdf("./figs/07_Hypervolume_cells_SDM_box.pdf", width=10)
+ggplot(data=hyper_cells_box,aes(x=biomes,y=vol)) +
+  geom_boxplot()+
+  geom_jitter(alpha=0.5,color=wes_palette("Cavalcanti1")[4])+
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))+
+  xlab("")+ylab(expression(paste("SD"^"6")))
+dev.off()
+
+
+# Add richness info
+
+spMatrix_sub_copy <-spMatrix_sub
+spMatrix_sub_copy[which(spMatrix_sub_copy>0)]<-1
+
+cell_richness <- rowSums(spMatrix_sub_copy)
+
+names(cell_richness) <- gsub("Cell_", "", names(cell_richness))
+
+indx<-match(hyper_cells_box$cell,names(cell_richness))
+hyper_cells_box$Richness<-cell_richness[indx]
+
+
+library(ggpmisc)
+library(ggpubr)
+
+biomes_to_plot <- c("Dry","Mediterranean","Xeric")
+
+hyper_cells_box$logRich <- log(hyper_cells_box$Richness)
+
+tmp_df <- hyper_cells_box %>% 
+  filter(biomes%in%biomes_to_plot & logRich > 4 & vol < 250)
+
+
+pdf("./figs/07_Hypervolume_cells_SDM_box_DMX.pdf", width=10)
+ggscatterhist(data = tmp_df, x = "logRich", y = "vol",
+              color = "biomes", size = 3, alpha = 0.6,
+              palette = c("#00AFBB", "#E7B800", "#FC4E07"),
+              margin.plot = "boxplot",
+              ggtheme = theme_bw())
+dev.off()
+
+
+
+
+### 
+
+
 
 
 ### Taking only the 10% of the cells per each biomes
@@ -84,6 +224,7 @@ cell_biomes<-cell_biomes_df %>%
 
 cell_biomes <-tapply(cell_biomes$cells, cell_biomes$biomes, unique)
 
+### Taking only the 20% of the cells per each biomes
 Random_cells<-
   lapply(cell_biomes,
          function(x)
@@ -197,12 +338,12 @@ cell_hyper_df$Richness<-cell_richness[indx]
 library(ggpmisc)
 library(ggpubr)
 
-biomes_to_plot <- c("Moist","Dry","Trop_Grass")
+biomes_to_plot <- c("Dry","Xeric","Mediterranean")
 
-cell_hyper_df$logRich <- log10(cell_hyper_df$Richness)
+cell_hyper_df$logRich <- log(cell_hyper_df$Richness)
 
 tmp_df <- cell_hyper_df %>% 
-  filter(biomes%in%biomes_to_plot & logRich > 2)
+  filter(biomes%in%biomes_to_plot & logRich > 4)
 
 ggscatterhist(data = tmp_df, x = "logRich", y = "vol",
               color = "biomes", size = 3, alpha = 0.6,
@@ -211,6 +352,9 @@ ggscatterhist(data = tmp_df, x = "logRich", y = "vol",
               ggtheme = theme_bw())
 
 
+Total_richness <- raster("./data/base/BIEN_2_Ranges/richness100km.tif")
+
+tmp_df$TotallogRich <- log(Total_richness[tmp_df$cell])
 ## Loop of 50 times
 
 
