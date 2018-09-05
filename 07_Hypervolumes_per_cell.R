@@ -107,7 +107,7 @@ hypervolume_per_cell <- function(cells_list, pb_matrix, trait_df){
         cell_hyper<-trait_df %>%
           filter(species%in%sp_names) %>%
           dplyr::select(contains("Scaled")) %>%
-          hypervolume_box()
+          hypervolume_box(kde.bandwidth=0.5)
         
         cell_hyper@Volume
         
@@ -130,11 +130,14 @@ hypervolume_per_cell <- function(cells_list, pb_matrix, trait_df){
 
 ## Running the function 
 system.time(
-hyper_cells_box <- hypervolume_per_cell(cells_list = cells_names[501:length(cells_names)], 
+hyper_cells_box <- hypervolume_per_cell(cells_list = cells_names, 
                             pb_matrix = spMatrix_sub, 
                             trait_df = Trait_df)
 )
 
+write_rds(hyper_cells_box, "./outputs/07_hypervol_cell_SDM_BW0.5.rds")
+
+## 
 write_rds(hyper_cells_box, "./outputs/07_hypervol_cell_SDM_501_end_box.rds")
 
 hyper_cells_box_1<-readRDS("outputs/07_hypervol_cell_SDM_501_end_box.rds")
@@ -192,15 +195,31 @@ hyper_cells_box$Richness<-cell_richness[indx]
 library(ggpmisc)
 library(ggpubr)
 
-biomes_to_plot <- c("Dry","Mediterranean","Xeric")
+biomes_to_plot <- c("Dry","Xeric","Mediterranean")
 
 hyper_cells_box$logRich <- log(hyper_cells_box$Richness)
 
 tmp_df <- hyper_cells_box %>% 
-  filter(biomes%in%biomes_to_plot & logRich > 4 & vol < 250)
+  filter(biomes%in%biomes_to_plot & logRich > 4)
 
 
-pdf("./figs/07_Hypervolume_cells_SDM_box_DMX.pdf", width=10)
+png("./figs/07_Hypervolume_cells_SDM_box_DMX.png", width=700)
+ggscatterhist(data = tmp_df, x = "logRich", y = "vol",
+              color = "biomes", size = 3, alpha = 0.6,
+              palette = c("#00AFBB", "#E7B800", "#FC4E07"),
+              margin.plot = "boxplot",
+              ggtheme = theme_bw())
+dev.off()
+
+
+## Moist, Temperate, and Taiga
+biomes_to_plot <- c("Moist","Temp_Mixed","Taiga")
+
+tmp_df <- hyper_cells_box %>% 
+  filter(biomes%in%biomes_to_plot & logRich > 4)
+
+
+png("./figs/07_Hypervolume_cells_SDM_box_MoisTempTaig.png", width=700)
 ggscatterhist(data = tmp_df, x = "logRich", y = "vol",
               color = "biomes", size = 3, alpha = 0.6,
               palette = c("#00AFBB", "#E7B800", "#FC4E07"),
